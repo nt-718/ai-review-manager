@@ -16,13 +16,12 @@ import { InsightsView } from "./components/InsightsView";
 import { DetailPanel } from "./components/DetailPanel";
 import { RepoPickerPage } from "./components/RepoPickerPage";
 import { BranchSidebar } from "./components/BranchSidebar";
-import { FilterSidebar } from "./components/FilterSidebar";
 import { useTheme } from "./lib/theme";
 
 const INITIAL_FILTERS: Filters = {
-  severity: "all",
-  category: "all",
-  tool: "all",
+  severity: [],
+  category: [],
+  tool: [],
 };
 
 type Tab = "board" | "files" | "history" | "insights";
@@ -82,6 +81,14 @@ function SunIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden>
       <path d="M8 12a4 4 0 1 1 0-8 4 4 0 0 1 0 8Zm0-1.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Zm5.657-8.157a.75.75 0 0 1 0 1.061l-1.061 1.06a.749.749 0 0 1-1.275-.326.749.749 0 0 1 .215-.734l1.06-1.06a.75.75 0 0 1 1.06 0Zm-9.193 9.193a.75.75 0 0 1 0 1.06l-1.06 1.061a.75.75 0 1 1-1.061-1.06l1.06-1.061a.75.75 0 0 1 1.061 0ZM8 0a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0V.75A.75.75 0 0 1 8 0ZM3 8a.75.75 0 0 1-.75.75H.75a.75.75 0 0 1 0-1.5h1.5A.75.75 0 0 1 3 8Zm13 0a.75.75 0 0 1-.75.75h-1.5a.75.75 0 0 1 0-1.5h1.5A.75.75 0 0 1 16 8ZM8 13a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0v-1.5A.75.75 0 0 1 8 13ZM2.343 2.343a.75.75 0 0 1 1.061 0l1.06 1.061a.751.751 0 0 1-.018 1.042.751.751 0 0 1-1.042.018l-1.06-1.06a.75.75 0 0 1 0-1.06Zm9.193 9.193a.75.75 0 0 1 1.061 0l1.06 1.06a.75.75 0 0 1-1.06 1.061l-1.061-1.06a.75.75 0 0 1 0-1.061Z" />
+    </svg>
+  );
+}
+
+function ReloadIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden>
+      <path d="M1.705 8.005a.75.75 0 0 1 .834.656 5.5 5.5 0 0 0 9.592 2.97l-1.204-1.204a.25.25 0 0 1 .177-.427h3.646a.25.25 0 0 1 .25.25v3.646a.25.25 0 0 1-.427.177l-1.38-1.38A7.002 7.002 0 0 1 1.05 8.84a.75.75 0 0 1 .656-.834ZM8 2.5a5.487 5.487 0 0 0-4.131 1.869l1.204 1.204A.25.25 0 0 1 4.896 6H1.25A.25.25 0 0 1 1 5.75V2.104a.25.25 0 0 1 .427-.177l1.38 1.38A7.002 7.002 0 0 1 14.95 7.16a.75.75 0 0 1-1.49.178A5.5 5.5 0 0 0 8 2.5Z" />
     </svg>
   );
 }
@@ -198,9 +205,9 @@ function App() {
           const b = f.branch ?? "(untagged)";
           if (b !== selectedBranch) return false;
         }
-        if (filters.severity !== "all" && f.severity !== filters.severity) return false;
-        if (filters.category !== "all" && f.category !== filters.category) return false;
-        if (filters.tool !== "all" && f.tool !== filters.tool) return false;
+        if (filters.severity.length > 0 && !filters.severity.includes(f.severity)) return false;
+        if (filters.category.length > 0 && !filters.category.includes(f.category)) return false;
+        if (filters.tool.length > 0 && !filters.tool.includes(f.tool)) return false;
         return true;
       }),
     [deduped, filters, selectedBranch],
@@ -278,6 +285,7 @@ function App() {
     board: filtered.length,
     files: new Set(filtered.map((f) => f.file)).size,
     history: new Set(deduped.map((f) => f.reviewId)).size,
+    insights: deduped.filter((f) => f.severity === "critical" || f.severity === "high").length,
   }), [filtered, deduped]);
 
   // Repo breadcrumb parts
@@ -331,6 +339,15 @@ function App() {
                 Read-only
               </span>
             )}
+            <button
+              type="button"
+              onClick={reload}
+              className="rounded-md p-1.5 text-ink-subtle transition-colors hover:bg-surface-2 hover:text-ink cursor-pointer"
+              aria-label="Reload findings"
+              title="Reload findings"
+            >
+              <ReloadIcon />
+            </button>
             <button
               type="button"
               onClick={toggleTheme}
@@ -423,9 +440,14 @@ function App() {
               </div>
             )}
 
-            {/* Summary bar */}
+            {/* Summary bar + inline filters */}
             <section className="rounded-md border border-line bg-surface px-4 py-3">
-              <PerspectiveSummary findings={filtered} />
+              <PerspectiveSummary
+                findings={filtered}
+                allFindings={deduped}
+                filters={filters}
+                onChange={setFilters}
+              />
             </section>
 
             {activeTab === "board" && (
@@ -448,16 +470,16 @@ function App() {
               />
             )}
 
-            {activeTab === "history" && <HistoryView findings={filtered} />}
+            {activeTab === "history" && (
+              <HistoryView
+                findings={filtered}
+                onFindingClick={setSelected}
+              />
+            )}
 
             {activeTab === "insights" && <InsightsView findings={deduped} />}
           </div>
 
-          <FilterSidebar
-            deduped={deduped}
-            filters={filters}
-            onChange={setFilters}
-          />
         </main>
       )}
 

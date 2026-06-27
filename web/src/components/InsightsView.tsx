@@ -7,7 +7,7 @@ import {
   SEVERITY_ORDER,
 } from "../types/review";
 import type { FindingWithContext } from "../lib/reviews";
-import { CATEGORY_STYLE, DISPOSITION_ACCENT, SEVERITY_STYLE } from "../lib/style";
+import { CATEGORY_STYLE, DISPOSITION_ACCENT, SEVERITY_STYLE, basename } from "../lib/style";
 
 interface InsightsViewProps {
   findings: FindingWithContext[];
@@ -39,13 +39,7 @@ function BarRow({ label, count, total, barClass, extra }: BarRowProps) {
   );
 }
 
-function SectionCard({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
+function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="rounded-md border border-line bg-surface overflow-hidden">
       <div className="border-b border-line bg-surface-2 px-4 py-2.5">
@@ -84,6 +78,24 @@ export function InsightsView({ findings }: InsightsViewProps) {
 
   const critical = findings.filter((f) => f.severity === "critical").length;
   const high = findings.filter((f) => f.severity === "high").length;
+  const reviewCount = new Set(findings.map((f) => f.reviewId)).size;
+  const avgPerReview = reviewCount > 0 ? Math.round(total / reviewCount) : 0;
+
+  // Top files by finding count
+  const fileMap = new Map<string, number>();
+  for (const f of findings) {
+    fileMap.set(f.file, (fileMap.get(f.file) ?? 0) + 1);
+  }
+  const topFiles = [...fileMap.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 8);
+
+  // Tool breakdown
+  const toolMap = new Map<string, number>();
+  for (const f of findings) {
+    toolMap.set(f.tool, (toolMap.get(f.tool) ?? 0) + 1);
+  }
+  const tools = [...toolMap.entries()].sort((a, b) => b[1] - a[1]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -92,12 +104,12 @@ export function InsightsView({ findings }: InsightsViewProps) {
         <StatCard
           label="Total findings"
           value={total}
-          sub="across all reviews"
+          sub={`${avgPerReview} avg per review`}
         />
         <StatCard
           label="Open"
           value={open}
-          sub={`${total - open} resolved`}
+          sub={`${closed} resolved`}
           color="text-success-fg"
         />
         <StatCard
@@ -107,10 +119,10 @@ export function InsightsView({ findings }: InsightsViewProps) {
           color={resolutionRate >= 50 ? "text-success-fg" : "text-attention-fg"}
         />
         <StatCard
-          label="Critical / High"
-          value={`${critical} / ${high}`}
-          sub="must + should fix"
-          color={critical > 0 ? "text-danger-fg" : "text-attention-fg"}
+          label="Reviews"
+          value={reviewCount}
+          sub={`${critical > 0 ? `${critical} critical` : high > 0 ? `${high} high` : "no critical/high"}`}
+          color={critical > 0 ? "text-danger-fg" : undefined}
         />
       </div>
 
@@ -211,6 +223,40 @@ export function InsightsView({ findings }: InsightsViewProps) {
             )}
           </div>
         </SectionCard>
+
+        {/* Top files */}
+        {topFiles.length > 0 && (
+          <SectionCard title="Top files by finding count">
+            <div>
+              {topFiles.map(([file, count]) => (
+                <BarRow
+                  key={file}
+                  label={basename(file)}
+                  count={count}
+                  total={topFiles[0][1]}
+                  barClass="bg-accent-fg"
+                />
+              ))}
+            </div>
+          </SectionCard>
+        )}
+
+        {/* Tool breakdown (only when multiple tools) */}
+        {tools.length > 1 && (
+          <SectionCard title="By tool">
+            <div>
+              {tools.map(([tool, count]) => (
+                <BarRow
+                  key={tool}
+                  label={tool}
+                  count={count}
+                  total={total}
+                  barClass="bg-done"
+                />
+              ))}
+            </div>
+          </SectionCard>
+        )}
       </div>
     </div>
   );

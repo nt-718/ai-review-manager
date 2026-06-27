@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { FindingWithContext } from "../lib/reviews";
 import { SEVERITY_ORDER, SEVERITY_LABEL } from "../types/review";
 import { SEVERITY_STYLE } from "../lib/style";
@@ -7,6 +7,8 @@ interface RepoPickerPageProps {
   findings: FindingWithContext[];
   onSelect: (repo: string) => void;
 }
+
+type SortKey = "open" | "updated" | "name";
 
 function isActive(f: FindingWithContext) {
   return f.disposition !== "done" && f.disposition !== "wontfix";
@@ -28,113 +30,176 @@ function ChevronRightIcon() {
   );
 }
 
+function SearchIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden className="text-ink-faint">
+      <path d="M10.68 11.74a6 6 0 0 1-7.922-8.982 6 6 0 0 1 8.982 7.922l3.04 3.04a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215ZM11.5 7a4.499 4.499 0 1 0-8.997 0A4.499 4.499 0 0 0 11.5 7Z" />
+    </svg>
+  );
+}
+
+const SORT_OPTIONS: { key: SortKey; label: string }[] = [
+  { key: "open", label: "Most open" },
+  { key: "updated", label: "Last updated" },
+  { key: "name", label: "Name" },
+];
+
 export function RepoPickerPage({ findings, onSelect }: RepoPickerPageProps) {
+  const [query, setQuery] = useState("");
+  const [sort, setSort] = useState<SortKey>("open");
+
   const repos = useMemo(() => {
     const map = new Map<string, FindingWithContext[]>();
     for (const f of findings) {
       if (!map.has(f.repo)) map.set(f.repo, []);
       map.get(f.repo)!.push(f);
     }
-    return [...map.entries()]
-      .map(([repo, fs]) => {
-        const open = fs.filter(isActive).length;
-        const closed = fs.length - open;
-        const pct = fs.length > 0 ? Math.round((closed / fs.length) * 100) : 0;
-        const lastReviewed = fs.reduce((a, b) => (a.createdAt > b.createdAt ? a : b)).createdAt;
-        const reviewCount = new Set(fs.map((f) => f.reviewId)).size;
-        const slash = repo.indexOf("/");
-        const owner = slash >= 0 ? repo.slice(0, slash) : null;
-        const name = slash >= 0 ? repo.slice(slash + 1) : repo;
-        return { repo, owner, name, findings: fs, open, closed, pct, lastReviewed, reviewCount };
-      })
-      .sort((a, b) => b.open - a.open);
+    return [...map.entries()].map(([repo, fs]) => {
+      const open = fs.filter(isActive).length;
+      const closed = fs.length - open;
+      const pct = fs.length > 0 ? Math.round((closed / fs.length) * 100) : 0;
+      const lastReviewed = fs.reduce((a, b) => (a.createdAt > b.createdAt ? a : b)).createdAt;
+      const reviewCount = new Set(fs.map((f) => f.reviewId)).size;
+      const slash = repo.indexOf("/");
+      const owner = slash >= 0 ? repo.slice(0, slash) : null;
+      const name = slash >= 0 ? repo.slice(slash + 1) : repo;
+      return { repo, owner, name, findings: fs, open, closed, pct, lastReviewed, reviewCount };
+    });
   }, [findings]);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const list = q ? repos.filter((r) => r.repo.toLowerCase().includes(q)) : repos;
+    return [...list].sort((a, b) => {
+      if (sort === "open") return b.open - a.open;
+      if (sort === "updated") return b.lastReviewed.localeCompare(a.lastReviewed);
+      return a.repo.localeCompare(b.repo);
+    });
+  }, [repos, query, sort]);
 
   return (
     <div className="mx-auto max-w-[56rem] px-4 py-8">
-      <div className="mb-5 flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-ink">Repositories</h2>
+      {/* Header row */}
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        {/* Search */}
+        <div className="relative flex-1 min-w-48">
+          <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center">
+            <SearchIcon />
+          </span>
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Find a repository…"
+            className="w-full rounded-md border border-line bg-surface py-1.5 pl-8 pr-3 text-sm text-ink placeholder:text-ink-faint focus:border-accent-fg focus:outline-none focus:ring-1 focus:ring-accent-fg"
+          />
+        </div>
+
+        {/* Sort */}
+        <div className="flex items-center gap-1 rounded-md border border-line bg-surface p-0.5 text-xs">
+          {SORT_OPTIONS.map(({ key, label }) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setSort(key)}
+              className={`rounded px-2.5 py-1 font-medium transition-colors ${
+                sort === key
+                  ? "bg-surface-3 text-ink"
+                  : "text-ink-subtle hover:text-ink"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
         <span className="text-sm text-ink-subtle">
-          {repos.length} {repos.length === 1 ? "repository" : "repositories"}
+          {filtered.length} {filtered.length === 1 ? "repository" : "repositories"}
         </span>
       </div>
 
-      <div className="overflow-hidden rounded-md border border-line">
-        {repos.map(({ repo, owner, name, findings: fs, open, closed, pct, lastReviewed, reviewCount }, idx) => (
-          <button
-            key={repo}
-            type="button"
-            onClick={() => onSelect(repo)}
-            className={`flex w-full items-center gap-4 px-6 py-5 text-left transition-colors hover:bg-surface-2 ${
-              idx > 0 ? "border-t border-line" : ""
-            }`}
-          >
-            <div className="shrink-0">
-              <RepoIcon />
-            </div>
-
-            <div className="min-w-0 flex-1">
-              {/* Repo name */}
-              <div className="flex flex-wrap items-center gap-x-1 gap-y-1">
-                {owner && (
-                  <>
-                    <span className="text-sm font-medium text-ink-subtle">{owner}</span>
-                    <span className="text-ink-faint">/</span>
-                  </>
-                )}
-                <span className="text-sm font-semibold text-accent-fg">{name}</span>
-                <span className="ml-1 rounded-full border border-line px-2 py-0.5 text-xs text-ink-subtle">
-                  {reviewCount} {reviewCount === 1 ? "review" : "reviews"}
-                </span>
+      {filtered.length === 0 ? (
+        <div className="rounded-md border border-line bg-surface p-12 text-center text-sm text-ink-subtle">
+          No repositories match &ldquo;{query}&rdquo;
+        </div>
+      ) : (
+        <div className="overflow-hidden rounded-md border border-line">
+          {filtered.map(({ repo, owner, name, findings: fs, open, closed, pct, lastReviewed, reviewCount }, idx) => (
+            <button
+              key={repo}
+              type="button"
+              onClick={() => onSelect(repo)}
+              className={`flex w-full items-center gap-4 px-6 py-5 text-left transition-colors hover:bg-surface-2 ${
+                idx > 0 ? "border-t border-line" : ""
+              }`}
+            >
+              <div className="shrink-0">
+                <RepoIcon />
               </div>
 
-              {/* Stats row */}
-              <div className="mt-1.5 flex flex-wrap items-center gap-3 text-xs text-ink-subtle">
-                <span className="flex items-center gap-1">
-                  <span className="h-2 w-2 rounded-full bg-success-fg" aria-hidden />
-                  {open} open
-                </span>
-                <span>{closed} closed</span>
-                <span aria-hidden>·</span>
-                <span>
-                  Updated{" "}
-                  {new Date(lastReviewed).toLocaleDateString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                    year: "numeric",
+              <div className="min-w-0 flex-1">
+                {/* Repo name */}
+                <div className="flex flex-wrap items-center gap-x-1 gap-y-1">
+                  {owner && (
+                    <>
+                      <span className="text-sm font-medium text-ink-subtle">{owner}</span>
+                      <span className="text-ink-faint">/</span>
+                    </>
+                  )}
+                  <span className="text-sm font-semibold text-accent-fg">{name}</span>
+                  <span className="ml-1 rounded-full border border-line px-2 py-0.5 text-xs text-ink-subtle">
+                    {reviewCount} {reviewCount === 1 ? "review" : "reviews"}
+                  </span>
+                </div>
+
+                {/* Stats row */}
+                <div className="mt-1.5 flex flex-wrap items-center gap-3 text-xs text-ink-subtle">
+                  <span className="flex items-center gap-1">
+                    <span className="h-2 w-2 rounded-full bg-success-fg" aria-hidden />
+                    {open} open
+                  </span>
+                  <span>{closed} closed</span>
+                  <span aria-hidden>·</span>
+                  <span>
+                    Updated{" "}
+                    {new Date(lastReviewed).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
+                  </span>
+                  <span aria-hidden>·</span>
+                  {/* Resolution bar inline */}
+                  <span className="flex items-center gap-1.5">
+                    <div className="h-1.5 w-16 overflow-hidden rounded-full bg-surface-2">
+                      <div
+                        className="h-full rounded-full bg-success-fg transition-all"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                    <span className="font-medium text-ink">{pct}%</span>
+                  </span>
+                </div>
+
+                {/* Severity badges */}
+                <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                  {SEVERITY_ORDER.map((s) => {
+                    const count = fs.filter((f) => f.severity === s).length;
+                    if (count === 0) return null;
+                    return (
+                      <span key={s} className={`rounded-full px-2 py-0.5 text-xs ${SEVERITY_STYLE[s].badge}`}>
+                        {count} {SEVERITY_LABEL[s]}
+                      </span>
+                    );
                   })}
-                </span>
-                <span aria-hidden>·</span>
-                {/* Resolution bar inline */}
-                <span className="flex items-center gap-1.5">
-                  <div className="h-1.5 w-16 overflow-hidden rounded-full bg-surface-2">
-                    <div
-                      className="h-full rounded-full bg-success-fg transition-all"
-                      style={{ width: `${pct}%` }}
-                    />
-                  </div>
-                  <span className="font-medium text-ink">{pct}%</span>
-                </span>
+                </div>
               </div>
 
-              {/* Severity badges */}
-              <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                {SEVERITY_ORDER.map((s) => {
-                  const count = fs.filter((f) => f.severity === s).length;
-                  if (count === 0) return null;
-                  return (
-                    <span key={s} className={`rounded-full px-2 py-0.5 text-xs ${SEVERITY_STYLE[s].badge}`}>
-                      {count} {SEVERITY_LABEL[s]}
-                    </span>
-                  );
-                })}
-              </div>
-            </div>
-
-            <ChevronRightIcon />
-          </button>
-        ))}
-      </div>
+              <ChevronRightIcon />
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
