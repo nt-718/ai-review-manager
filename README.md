@@ -16,7 +16,7 @@ It is built around three independent layers:
 
 | Layer | Path | Role |
 | --- | --- | --- |
-| **Skill** | [`.claude/skills/ai-code-review/`](./.claude/skills/ai-code-review/) · [`.cursor/skills/ai-code-review/`](./.cursor/skills/ai-code-review/) | The contract. Tells any AI editor to emit a review JSON conforming to the schema. |
+| **Skills** | [`.claude/skills/`](./.claude/skills/) · [`.cursor/skills/`](./.cursor/skills/) | The contract. Tells any AI editor to produce reviews, apply fixes, investigate findings, or clean up state. |
 | **Schema** | [`schema/`](./schema) | The source of truth for reviews (immutable) and decisions (mutable) — JSON Schema, draft 2020-12. |
 | **ReviewOps** | [`scripts/`](./scripts) + [`web/`](./web) | A CLI + local server that serves the dashboard, reads `.ai-review/`, and writes back human decisions. |
 
@@ -75,6 +75,56 @@ cd web && npm run dev
 ReviewOps reads each repository's `.ai-review/` live from `review-sources.json`, so
 no pre-aggregation is needed (use `npm run collect` only for static CI hosting).
 
+## CLI reference
+
+```
+reviewops init                          Copy skills + schema into the project, register in global board
+reviewops serve [--port <n>] [--open]  Start dashboard + API server (default port: 4517)
+reviewops status                        Show finding summary in terminal
+reviewops validate                      Validate review JSON files against the schema
+reviewops collect [<path>...]           Copy reviews for static hosting
+```
+
+### `reviewops init`
+
+Run inside any repository you want to review. It:
+
+1. Creates `.ai-review/` in the current directory.
+2. Copies `.claude/skills/`, `.cursor/skills/`, and `schema/` into the project so the
+   AI editor can use them without a separate install.
+3. Registers the project in the global config
+   (`~/.config/reviewops/review-sources.json`) so the dashboard picks it up from
+   anywhere.
+
+```bash
+cd ~/projects/my-app
+npx reviewops init
+reviewops serve --open   # open the global board — my-app is now listed
+```
+
+### `reviewops status`
+
+Prints a finding summary in the terminal — useful in CI or as a quick health check:
+
+```
+ReviewOps — status
+
+  Sources : 2
+  Findings: 14 unique (17 total across all reviews)
+
+  Disposition
+    triage        5  ████░░░░░░░░░░░░░░░░
+    ai-fix        3  ████████████░░░░░░░░
+    manual        2  ████████░░░░░░░░░░░░
+    wontfix       1  ████░░░░░░░░░░░░░░░░
+    done          3  ████████████░░░░░░░░
+
+  Active by severity (triage + ai-fix + manual)
+    must       2  critical
+    should     4  high
+    imo        4  medium
+```
+
 ## Generating a review (the skill)
 
 The `ai-code-review` skill defines the output contract. Point your AI editor at it
@@ -89,7 +139,18 @@ in the reviewed repository.
 To reuse the skill in another repository, copy the
 `.claude/skills/ai-code-review/` directory (for Claude Code) or
 `.cursor/skills/ai-code-review/` directory (for Cursor) — and `schema/review.schema.json` — into
-that repository.
+that repository. Or run `reviewops init` to do it automatically.
+
+## Available skills
+
+Four skills ship with ReviewOps (under `.claude/skills/` and `.cursor/skills/`):
+
+| Skill | Trigger phrase | What it does |
+| --- | --- | --- |
+| **`ai-code-review`** | "review this code" | Generates a normalized JSON review and writes it to `.ai-review/`. |
+| **`ai-fix-from-board`** | "fix the board" / "run ai-fix" | Reads `.ai-review/review-state.json`, applies fixes for every `ai-fix` finding per its `instruction`, then marks them `done`. |
+| **`ai-investigate-finding`** | "investigate this finding" | Reads the Q&A thread on a finding, inspects the source code, and appends an `assistant` reply to the thread. |
+| **`ai-review-clean`** | "clean up reviews" / "remove stale entries" | Removes orphaned fingerprints from `review-state.json` (findings that no longer exist in any review file). |
 
 ## Multiple repositories
 
@@ -105,8 +166,40 @@ Copy `review-sources.example.json` to `review-sources.json` and edit it:
 
 `review-sources.json` is gitignored — each user keeps their own local copy.
 
+**Global config**: `reviewops init` also writes to
+`~/.config/reviewops/review-sources.json` (or `$XDG_CONFIG_HOME/reviewops/review-sources.json`).
+ReviewOps checks the project-level config first; if absent it falls back to the global
+config. This means you can run `reviewops serve` from the ReviewOps package directory
+and still see all projects you have `init`ed.
+
 State is written back to **each source repository's** `.ai-review/review-state.json`,
 so it travels with the repository and the AI running there can read it locally.
+
+## Dashboard
+
+`reviewops serve` opens the board at `http://localhost:4517`. When multiple
+repositories are configured, a **repo picker** is shown first; selecting one opens its
+board. The URL hash (`#my-org/my-repo`) can be bookmarked.
+
+### Views
+
+| Tab | Contents |
+| --- | --- |
+| **Board** | Kanban with 5 disposition lanes. Drag cards or click to update disposition, instruction, and note. |
+| **Files** | All findings grouped by file path — a quick view of which files have the most issues. |
+| **History** | All review runs in chronological order, with score and finding count per run. |
+| **Insights** | Severity and category breakdowns across all active findings. |
+
+A **branch sidebar** lets you filter findings by branch. A **filter sidebar** filters
+by severity, category, and reviewer tool. A theme toggle (☀ / ☾) switches between
+light and dark mode.
+
+### Detail panel & Investigation thread
+
+Clicking a finding card opens a detail panel with the full finding, the current
+disposition controls, and an **Investigation** thread. Any member of the team can post
+a question; the `ai-investigate-finding` skill reads the thread and appends an AI
+answer directly to `review-state.json`.
 
 ## How the AI reads the board
 
@@ -118,19 +211,29 @@ so it travels with the repository and the AI running there can read it locally.
 {
   "version": "1.0",
   "entries": {
-    "e64e69554a80": {
-      "disposition": "ai-fix",
-      "instruction": "Use Promise.allSettled and show partial results.",
-      "decidedBy": "user"
+    "my-repo": {
+      "e64e69554a80": {
+        "disposition": "ai-fix",
+        "instruction": "Use Promise.allSettled and show partial results.",
+        "note": "",
+        "thread": [
+          { "role": "user",      "text": "Does this also affect the retry path?", "at": "2026-06-27T10:00:00Z" },
+          { "role": "assistant", "text": "Yes — src/retry.ts:42 has the same pattern.", "at": "2026-06-27T10:01:00Z" }
+        ],
+        "history": [
+          { "from": "triage", "to": "ai-fix", "at": "2026-06-27T09:55:00Z", "by": "user" }
+        ],
+        "decidedAt": "2026-06-27T09:55:00Z",
+        "decidedBy": "user"
+      }
     }
   }
 }
 ```
 
 An AI agent reads this file, acts only on findings whose `disposition` is `ai-fix`, and
-fixes them according to `instruction`. After fixing and re-reviewing, resolved findings
-can be reconciled to `done` by `fingerprint` match (automating this loop is Phase 2 on
-the roadmap).
+fixes them according to `instruction`. The `ai-fix-from-board` skill automates this
+loop and marks resolved findings `done`.
 
 ## Review schema
 
@@ -181,31 +284,25 @@ npx --yes --package=ajv-cli@5 --package=ajv-formats@2 -- ajv validate \
 ```
 .
 ├── .ai-review/                  # Review JSON for THIS repo + review-state.json (gitignored)
-├── .claude/skills/              # ai-code-review skill for Claude Code
-├── .cursor/skills/              # ai-code-review skill for Cursor
+├── .claude/skills/              # Skills for Claude Code
+│   ├── ai-code-review/          #   Generate a review
+│   ├── ai-fix-from-board/       #   Apply fixes from the ai-fix lane
+│   ├── ai-investigate-finding/  #   Answer Q&A threads on findings
+│   └── ai-review-clean/         #   Remove orphaned state entries
+├── .cursor/skills/              # Same four skills for Cursor
 ├── schema/
 │   ├── review.schema.json       # Normalized review schema (immutable layer)
 │   └── review-state.schema.json # Disposition + instruction schema (mutable layer)
 ├── scripts/
 │   ├── cli.mjs                  # reviewops entry point
 │   ├── server.mjs               # Local server (API + static dist)
-│   ├── api.mjs                  # Shared API handler (findings / state)
+│   ├── api.mjs                  # Shared API handler (findings / state / thread)
+│   ├── init.mjs                 # reviewops init logic
+│   ├── status.mjs               # reviewops status logic
 │   └── collect-reviews.mjs      # Static-hosting aggregation (optional)
 ├── review-sources.example.json  # Template — copy to review-sources.json and edit
 └── web/                         # React + Vite dashboard (the control board)
 ```
-
-## Roadmap
-
-- **Phase 1 (done)**: CLI + server, the disposition control board, fix-instruction
-  input, write-back to `review-state.json`.
-- **Phase 2**: an `ai-fix-from-board` skill that works the `ai-fix` lane per its
-  `instruction`, plus re-review reconciliation (auto `done`, dedup by fingerprint,
-  suppress `wontfix`).
-- **Phase 3**: traceability to fix commits, score trends over time, cross-AI
-  agreement on findings.
-- Distribute the skill and the control board as a standalone package / reusable
-  visualization library.
 
 ## License
 
