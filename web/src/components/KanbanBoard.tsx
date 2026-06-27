@@ -83,7 +83,7 @@ export function KanbanBoard({
             key={disposition}
             className={`flex min-w-0 flex-col rounded-md border transition-colors ${
               isDropTarget
-                ? "border-[#388bfd]/60 bg-[#388bfd]/5 ring-1 ring-[#388bfd]/30"
+                ? "border-accent-hover/60 bg-accent-hover/5 ring-1 ring-accent-hover/30"
                 : "border-line bg-surface"
             }`}
             onDragOver={handleDragOver(disposition)}

@@ -19,11 +19,11 @@ interface DetailPanelProps {
 }
 
 const DISPOSITION_COLOR: Record<string, string> = {
-  triage: "bg-[#6e7681]/15 text-[#8b949e] ring-1 ring-inset ring-[#6e7681]/30",
-  "ai-fix": "bg-[#388bfd]/15 text-[#58a6ff] ring-1 ring-inset ring-[#388bfd]/30",
-  manual: "bg-[#a371f7]/15 text-[#d2a8ff] ring-1 ring-inset ring-[#a371f7]/30",
-  wontfix: "bg-[#6e7681]/10 text-[#6e7681] ring-1 ring-inset ring-[#484f58]/40",
-  done: "bg-[#238636]/15 text-[#3fb950] ring-1 ring-inset ring-[#238636]/40",
+  triage: "bg-ink-faint/15 text-ink-subtle ring-1 ring-inset ring-ink-faint/30",
+  "ai-fix": "bg-accent-hover/15 text-accent-fg ring-1 ring-inset ring-accent-hover/30",
+  manual: "bg-done/15 text-done-emphasis ring-1 ring-inset ring-done/30",
+  wontfix: "bg-ink-faint/10 text-ink-faint ring-1 ring-inset ring-line-strong/40",
+  done: "bg-success/15 text-success-fg ring-1 ring-inset ring-success/40",
 };
 
 export function DetailPanel({
@@ -167,8 +167,8 @@ export function DetailPanel({
 
               {/* Suggestion */}
               {finding.suggestion && (
-                <div className="border-b border-line bg-[#388bfd]/5 px-4 py-3">
-                  <div className="mb-1.5 flex items-center gap-1.5 text-[#58a6ff]">
+                <div className="border-b border-line bg-accent-hover/5 px-4 py-3">
+                  <div className="mb-1.5 flex items-center gap-1.5 text-accent-fg">
                     <BulbIcon size="md" />
                     <span className="text-xs font-semibold">Suggested fix</span>
                   </div>
@@ -195,15 +195,15 @@ export function DetailPanel({
                         className={`rounded-md border text-sm ${
                           message.role === "user"
                             ? "border-line bg-surface-2"
-                            : "border-[#388bfd]/20 bg-[#388bfd]/5"
+                            : "border-accent-hover/20 bg-accent-hover/5"
                         }`}
                       >
                         {/* Comment header */}
                         <div
                           className={`flex items-center gap-2 border-b px-3 py-1.5 text-xs ${
-                            message.role === "user"
+                              message.role === "user"
                               ? "border-line bg-surface-3 text-ink-subtle"
-                              : "border-[#388bfd]/20 bg-[#388bfd]/5 text-[#58a6ff]"
+                              : "border-accent-hover/20 bg-accent-hover/5 text-accent-fg"
                           }`}
                         >
                           <span className="font-semibold">
@@ -246,7 +246,7 @@ export function DetailPanel({
                       }}
                       placeholder="Leave a comment…"
                       rows={2}
-                      className="w-full resize-y rounded-md border border-line bg-surface-2 px-3 py-2 text-sm leading-relaxed text-ink placeholder:text-ink-faint focus:border-[#388bfd] focus:outline-none focus:ring-1 focus:ring-[#388bfd]/50 disabled:opacity-50"
+                      className="w-full resize-y rounded-md border border-line bg-surface-2 px-3 py-2 text-sm leading-relaxed text-ink placeholder:text-ink-faint focus:border-accent-hover focus:outline-none focus:ring-1 focus:ring-accent-hover/50 disabled:opacity-50"
                     />
                     <div className="flex items-center justify-between gap-2">
                       <p className="text-xs text-ink-faint">
@@ -260,7 +260,7 @@ export function DetailPanel({
                         type="button"
                         disabled={!question.trim() || posting}
                         onClick={() => void handleAsk()}
-                        className="shrink-0 rounded-md bg-[#238636] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#2ea043] disabled:cursor-not-allowed disabled:opacity-40"
+                        className="shrink-0 rounded-md bg-success px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-success-fg disabled:cursor-not-allowed disabled:opacity-40"
                       >
                         {posting ? "Saving…" : "Comment"}
                       </button>
@@ -283,14 +283,14 @@ export function DetailPanel({
                       onBlur={handleBlurSave}
                       placeholder="Tell the AI how to fix this. Findings in the AI Fix column are eligible."
                       rows={3}
-                      className="w-full resize-y rounded-md border border-line bg-surface-2 px-3 py-2 text-sm leading-relaxed text-ink placeholder:text-ink-faint focus:border-[#388bfd] focus:outline-none focus:ring-1 focus:ring-[#388bfd]/50 disabled:opacity-50"
+                      className="w-full resize-y rounded-md border border-line bg-surface-2 px-3 py-2 text-sm leading-relaxed text-ink placeholder:text-ink-faint focus:border-accent-hover focus:outline-none focus:ring-1 focus:ring-accent-hover/50 disabled:opacity-50"
                     />
                     {!readOnly && (
                       <button
                         type="button"
                         disabled={!instructionDirty}
                         onClick={() => onStateChange(finding, { instruction })}
-                        className="self-end rounded-md bg-[#1f6feb] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#388bfd] disabled:cursor-not-allowed disabled:opacity-40"
+                        className="self-end rounded-md bg-accent px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-40"
                       >
                         Save
                       </button>
@@ -308,7 +308,7 @@ export function DetailPanel({
                       onBlur={handleBlurSave}
                       placeholder="Rationale or notes (optional)"
                       rows={2}
-                      className="w-full resize-y rounded-md border border-line bg-surface-2 px-3 py-2 text-sm leading-relaxed text-ink placeholder:text-ink-faint focus:border-[#388bfd] focus:outline-none focus:ring-1 focus:ring-[#388bfd]/50 disabled:opacity-50"
+                      className="w-full resize-y rounded-md border border-line bg-surface-2 px-3 py-2 text-sm leading-relaxed text-ink placeholder:text-ink-faint focus:border-accent-hover focus:outline-none focus:ring-1 focus:ring-accent-hover/50 disabled:opacity-50"
                     />
                     {!readOnly && (
                       <button

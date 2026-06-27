@@ -11,24 +11,24 @@ interface SeverityStyle {
 
 export const SEVERITY_STYLE: Record<Severity, SeverityStyle> = {
   critical: {
-    stripe: "bg-[#f85149]",
-    badge: "rounded-full bg-[#da3633]/15 text-[#ff7b72] ring-1 ring-inset ring-[#da3633]/40",
+    stripe: "bg-danger-fg",
+    badge: "rounded-full bg-danger/15 text-danger-emphasis ring-1 ring-inset ring-danger/40",
   },
   high: {
-    stripe: "bg-[#d29922]",
-    badge: "rounded-full bg-[#d29922]/15 text-[#e3b341] ring-1 ring-inset ring-[#d29922]/40",
+    stripe: "bg-attention-fg",
+    badge: "rounded-full bg-attention-fg/15 text-attention-emphasis ring-1 ring-inset ring-attention-fg/40",
   },
   medium: {
-    stripe: "bg-[#a371f7]",
-    badge: "rounded-full bg-[#a371f7]/15 text-[#d2a8ff] ring-1 ring-inset ring-[#a371f7]/30",
+    stripe: "bg-done",
+    badge: "rounded-full bg-done/15 text-done-emphasis ring-1 ring-inset ring-done/30",
   },
   low: {
-    stripe: "bg-[#58a6ff]",
-    badge: "rounded-full bg-[#58a6ff]/15 text-[#79c0ff] ring-1 ring-inset ring-[#58a6ff]/30",
+    stripe: "bg-accent-fg",
+    badge: "rounded-full bg-accent-fg/15 text-accent-emphasis ring-1 ring-inset ring-accent-fg/30",
   },
   info: {
-    stripe: "bg-[#6e7681]",
-    badge: "rounded-full bg-[#6e7681]/15 text-[#8b949e] ring-1 ring-inset ring-[#6e7681]/30",
+    stripe: "bg-ink-faint",
+    badge: "rounded-full bg-ink-faint/15 text-ink-subtle ring-1 ring-inset ring-ink-faint/30",
   },
 };
 
@@ -38,13 +38,13 @@ export const SEVERITY_STYLE: Record<Severity, SeverityStyle> = {
 
 export const CONFIDENCE_STYLE: Record<Confidence, { badge: string }> = {
   high: {
-    badge: "rounded-full bg-[#3fb950]/10 text-[#3fb950] ring-1 ring-inset ring-[#3fb950]/25",
+    badge: "rounded-full bg-success-fg/10 text-success-fg ring-1 ring-inset ring-success-fg/25",
   },
   medium: {
-    badge: "rounded-full bg-[#6e7681]/12 text-[#8b949e] ring-1 ring-inset ring-[#6e7681]/25",
+    badge: "rounded-full bg-ink-faint/12 text-ink-subtle ring-1 ring-inset ring-ink-faint/25",
   },
   low: {
-    badge: "rounded-full bg-transparent text-[#6e7681] ring-1 ring-inset ring-[#6e7681]/30",
+    badge: "rounded-full bg-transparent text-ink-faint ring-1 ring-inset ring-ink-faint/30",
   },
 };
 
@@ -59,32 +59,32 @@ interface CategoryStyle {
 
 export const CATEGORY_STYLE: Record<Category, CategoryStyle> = {
   security: {
-    dot: "bg-[#f85149]",
-    badge: "rounded-full bg-[#da3633]/15 text-[#ff7b72] ring-1 ring-inset ring-[#da3633]/25",
+    dot: "bg-danger-fg",
+    badge: "rounded-full bg-danger/15 text-danger-emphasis ring-1 ring-inset ring-danger/25",
   },
   bug: {
-    dot: "bg-[#a371f7]",
-    badge: "rounded-full bg-[#a371f7]/15 text-[#d2a8ff] ring-1 ring-inset ring-[#a371f7]/25",
+    dot: "bg-done",
+    badge: "rounded-full bg-done/15 text-done-emphasis ring-1 ring-inset ring-done/25",
   },
   performance: {
-    dot: "bg-[#39d353]",
-    badge: "rounded-full bg-[#39d353]/10 text-[#56d364] ring-1 ring-inset ring-[#39d353]/25",
+    dot: "bg-success-fg",
+    badge: "rounded-full bg-success-fg/10 text-success-emphasis ring-1 ring-inset ring-success-fg/25",
   },
   maintainability: {
-    dot: "bg-[#58a6ff]",
-    badge: "rounded-full bg-[#58a6ff]/10 text-[#79c0ff] ring-1 ring-inset ring-[#58a6ff]/25",
+    dot: "bg-accent-fg",
+    badge: "rounded-full bg-accent-fg/10 text-accent-emphasis ring-1 ring-inset ring-accent-fg/25",
   },
   test: {
-    dot: "bg-[#3fb950]",
-    badge: "rounded-full bg-[#3fb950]/10 text-[#56d364] ring-1 ring-inset ring-[#3fb950]/25",
+    dot: "bg-success-fg",
+    badge: "rounded-full bg-success-fg/10 text-success-emphasis ring-1 ring-inset ring-success-fg/25",
   },
   docs: {
-    dot: "bg-[#d29922]",
-    badge: "rounded-full bg-[#d29922]/10 text-[#e3b341] ring-1 ring-inset ring-[#d29922]/25",
+    dot: "bg-attention-fg",
+    badge: "rounded-full bg-attention-fg/10 text-attention-emphasis ring-1 ring-inset ring-attention-fg/25",
   },
   other: {
-    dot: "bg-[#6e7681]",
-    badge: "rounded-full bg-[#6e7681]/10 text-[#8b949e] ring-1 ring-inset ring-[#6e7681]/20",
+    dot: "bg-ink-faint",
+    badge: "rounded-full bg-ink-faint/10 text-ink-subtle ring-1 ring-inset ring-ink-faint/20",
   },
 };
 
@@ -93,11 +93,11 @@ export const CATEGORY_STYLE: Record<Category, CategoryStyle> = {
 /* ------------------------------------------------------------------ */
 
 export const DISPOSITION_ACCENT: Record<Disposition, string> = {
-  triage: "bg-[#6e7681]",
-  "ai-fix": "bg-[#388bfd]",
-  manual: "bg-[#a371f7]",
-  wontfix: "bg-[#484f58]",
-  done: "bg-[#3fb950]",
+  triage: "bg-ink-faint",
+  "ai-fix": "bg-accent-hover",
+  manual: "bg-done",
+  wontfix: "bg-line-strong",
+  done: "bg-success-fg",
 };
 
 export function formatLine(start?: number, end?: number): string {

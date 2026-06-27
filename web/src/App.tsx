@@ -17,6 +17,7 @@ import { DetailPanel } from "./components/DetailPanel";
 import { RepoPickerPage } from "./components/RepoPickerPage";
 import { BranchSidebar } from "./components/BranchSidebar";
 import { FilterSidebar } from "./components/FilterSidebar";
+import { useTheme } from "./lib/theme";
 
 const INITIAL_FILTERS: Filters = {
   severity: "all",
@@ -75,6 +76,22 @@ function InsightsIcon() {
   );
 }
 
+function SunIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden>
+      <path d="M8 12a4 4 0 1 1 0-8 4 4 0 0 1 0 8Zm0-1.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Zm5.657-8.157a.75.75 0 0 1 0 1.061l-1.061 1.06a.749.749 0 0 1-1.275-.326.749.749 0 0 1 .215-.734l1.06-1.06a.75.75 0 0 1 1.06 0Zm-9.193 9.193a.75.75 0 0 1 0 1.06l-1.06 1.061a.75.75 0 1 1-1.061-1.06l1.06-1.061a.75.75 0 0 1 1.061 0ZM8 0a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0V.75A.75.75 0 0 1 8 0ZM3 8a.75.75 0 0 1-.75.75H.75a.75.75 0 0 1 0-1.5h1.5A.75.75 0 0 1 3 8Zm13 0a.75.75 0 0 1-.75.75h-1.5a.75.75 0 0 1 0-1.5h1.5A.75.75 0 0 1 16 8ZM8 13a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0v-1.5A.75.75 0 0 1 8 13ZM2.343 2.343a.75.75 0 0 1 1.061 0l1.06 1.061a.751.751 0 0 1-.018 1.042.751.751 0 0 1-1.042.018l-1.06-1.06a.75.75 0 0 1 0-1.06Zm9.193 9.193a.75.75 0 0 1 1.061 0l1.06 1.06a.75.75 0 0 1-1.06 1.061l-1.061-1.06a.75.75 0 0 1 0-1.061Z" />
+    </svg>
+  );
+}
+
+function MoonIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden>
+      <path d="M9.598 1.591a.749.749 0 0 1 .785-.175 7.001 7.001 0 1 1-8.967 8.967.75.75 0 0 1 .961-.96 5.5 5.5 0 0 0 7.046-7.046.75.75 0 0 1 .175-.786Zm1.616 1.945a7 7 0 0 1-7.678 7.678 5.499 5.499 0 1 0 7.678-7.678Z" />
+    </svg>
+  );
+}
+
 const TABS: TabDef[] = [
   { id: "board", label: "Board", icon: <BoardIcon /> },
   { id: "files", label: "Files", icon: <FilesIcon /> },
@@ -98,6 +115,7 @@ function App() {
   const [activeTab, setActiveTab] = useState<Tab>("board");
   const [selectedRepo, setSelectedRepo] = useState<string | null>(() => repoFromHash());
   const [selectedBranch, setSelectedBranch] = useState<string | null>(null);
+  const { theme, toggleTheme } = useTheme();
 
   const reload = useCallback(() => {
     setLoading(true);
@@ -304,6 +322,15 @@ function App() {
                 Read-only
               </span>
             )}
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="rounded-md p-1.5 text-ink-subtle transition-colors hover:bg-surface-2 hover:text-ink cursor-pointer"
+              aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
+              title={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
+            >
+              {theme === "dark" ? <SunIcon /> : <MoonIcon />}
+            </button>
           </div>
         </div>
 
@@ -321,7 +348,7 @@ function App() {
                     onClick={() => setActiveTab(tab.id)}
                     className={`flex shrink-0 items-center gap-1.5 px-3 pb-2.5 pt-2 text-sm transition-colors ${
                       active
-                        ? "border-b-2 border-[#f78166] font-semibold text-ink"
+                        ? "border-b-2 border-coral font-semibold text-ink"
                         : "font-medium text-ink-subtle hover:text-ink"
                     }`}
                   >
@@ -360,7 +387,7 @@ function App() {
 
       {error && (
         <div className="px-4 py-4">
-          <div className="rounded-md border border-[#da3633]/40 bg-[#da3633]/10 p-6 text-center text-[#f85149]">
+          <div className="rounded-md border border-danger/40 bg-danger/10 p-6 text-center text-danger-fg">
             {error}
           </div>
         </div>
@@ -382,7 +409,7 @@ function App() {
 
           <div className="min-w-0 flex-1 flex flex-col gap-4">
             {notice && (
-              <div className="rounded-md border border-[#9e6a03]/40 bg-[#9e6a03]/10 px-4 py-2.5 text-sm text-[#e3b341]">
+              <div className="rounded-md border border-attention/40 bg-attention/10 px-4 py-2.5 text-sm text-attention-emphasis">
                 {notice}
               </div>
             )}

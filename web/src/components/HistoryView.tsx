@@ -54,7 +54,7 @@ export function HistoryView({ findings }: HistoryViewProps) {
           <div key={review.id} className="flex gap-4">
             {/* Timeline column */}
             <div className="flex w-10 shrink-0 flex-col items-center gap-0 pt-4">
-              <div className="z-10 h-3 w-3 rounded-full bg-[#3fb950] ring-2 ring-canvas" />
+              <div className="z-10 h-3 w-3 rounded-full bg-success-fg ring-2 ring-canvas" />
               {i < reviews.length - 1 && (
                 <div className="mt-1 w-px flex-1 bg-line" />
               )}
@@ -85,14 +85,14 @@ export function HistoryView({ findings }: HistoryViewProps) {
                 {/* Open/closed */}
                 <div className="flex items-center gap-3 text-sm">
                   <span className="flex items-center gap-1.5 text-ink-muted">
-                    <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden className="text-[#3fb950]">
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden className="text-success-fg">
                       <path d="M8 9.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z" />
                       <path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Z" />
                     </svg>
                     <span className="font-semibold text-ink">{open}</span> open
                   </span>
                   <span className="flex items-center gap-1.5 text-ink-subtle">
-                    <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden className="text-[#a371f7]">
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden className="text-done">
                       <path d="M11.28 6.78a.75.75 0 0 0-1.06-1.06L7.25 8.69 5.78 7.22a.75.75 0 0 0-1.06 1.06l2 2a.75.75 0 0 0 1.06 0l3.5-3.5Z" />
                       <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0Zm-1.5 0a6.5 6.5 0 1 0-13 0 6.5 6.5 0 0 0 13 0Z" />
                     </svg>
@@ -123,7 +123,7 @@ export function HistoryView({ findings }: HistoryViewProps) {
                   <div className="ml-auto flex items-center gap-2">
                     <div className="h-1.5 w-24 overflow-hidden rounded-full bg-surface-2">
                       <div
-                        className="h-full rounded-full bg-[#3fb950]"
+                        className="h-full rounded-full bg-success-fg"
                         style={{ width: `${Math.round((closed / review.findings.length) * 100)}%` }}
                       />
                     </div>

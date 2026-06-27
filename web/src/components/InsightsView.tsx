@@ -98,19 +98,19 @@ export function InsightsView({ findings }: InsightsViewProps) {
           label="Open"
           value={open}
           sub={`${total - open} resolved`}
-          color="text-[#3fb950]"
+          color="text-success-fg"
         />
         <StatCard
           label="Resolution rate"
           value={`${resolutionRate}%`}
           sub="done + won't fix"
-          color={resolutionRate >= 50 ? "text-[#3fb950]" : "text-[#d29922]"}
+          color={resolutionRate >= 50 ? "text-success-fg" : "text-attention-fg"}
         />
         <StatCard
           label="Critical / High"
           value={`${critical} / ${high}`}
           sub="must + should fix"
-          color={critical > 0 ? "text-[#f85149]" : "text-[#d29922]"}
+          color={critical > 0 ? "text-danger-fg" : "text-attention-fg"}
         />
       </div>
 
@@ -181,7 +181,7 @@ export function InsightsView({ findings }: InsightsViewProps) {
               </div>
               <div className="h-3 w-full overflow-hidden rounded-full bg-surface-2">
                 <div
-                  className="h-full rounded-full bg-[#3fb950] transition-all"
+                  className="h-full rounded-full bg-success-fg transition-all"
                   style={{ width: `${resolutionRate}%` }}
                 />
               </div>

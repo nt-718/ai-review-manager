@@ -66,7 +66,7 @@ function FilterItem({ label, count, active, dot, onClick }: FilterItemProps) {
   return (
     <li className="relative">
       {active && (
-        <span className="absolute inset-y-0 left-0 w-0.5 rounded-full bg-[#f78166]" aria-hidden />
+        <span className="absolute inset-y-0 left-0 w-0.5 rounded-full bg-coral" aria-hidden />
       )}
       <button
         type="button"
@@ -163,7 +163,7 @@ export function FilterSidebar({ deduped, filters, onChange }: FilterSidebarProps
                   label={tool}
                   count={count}
                   active={filters.tool === tool}
-                  dot="bg-[#6e7681]"
+                  dot="bg-ink-faint"
                   onClick={() => toggle("tool", tool)}
                 />
               ))}

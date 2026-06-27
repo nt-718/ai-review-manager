@@ -30,7 +30,7 @@ function NavItem({ label, count, active, onClick, mono }: NavItemProps) {
     <li className="relative">
       {active && (
         <span
-          className="absolute inset-y-0 left-0 w-0.5 rounded-full bg-[#f78166]"
+          className="absolute inset-y-0 left-0 w-0.5 rounded-full bg-coral"
           aria-hidden
         />
       )}

@@ -82,7 +82,7 @@ export function RepoPickerPage({ findings, onSelect }: RepoPickerPageProps) {
                     <span className="text-ink-faint">/</span>
                   </>
                 )}
-                <span className="text-sm font-semibold text-[#58a6ff]">{name}</span>
+                <span className="text-sm font-semibold text-accent-fg">{name}</span>
                 <span className="ml-1 rounded-full border border-line px-2 py-0.5 text-xs text-ink-subtle">
                   {reviewCount} {reviewCount === 1 ? "review" : "reviews"}
                 </span>
@@ -91,7 +91,7 @@ export function RepoPickerPage({ findings, onSelect }: RepoPickerPageProps) {
               {/* Stats row */}
               <div className="mt-1.5 flex flex-wrap items-center gap-3 text-xs text-ink-subtle">
                 <span className="flex items-center gap-1">
-                  <span className="h-2 w-2 rounded-full bg-[#3fb950]" aria-hidden />
+                  <span className="h-2 w-2 rounded-full bg-success-fg" aria-hidden />
                   {open} open
                 </span>
                 <span>{closed} closed</span>
@@ -109,7 +109,7 @@ export function RepoPickerPage({ findings, onSelect }: RepoPickerPageProps) {
                 <span className="flex items-center gap-1.5">
                   <div className="h-1.5 w-16 overflow-hidden rounded-full bg-surface-2">
                     <div
-                      className="h-full rounded-full bg-[#3fb950] transition-all"
+                      className="h-full rounded-full bg-success-fg transition-all"
                       style={{ width: `${pct}%` }}
                     />
                   </div>
