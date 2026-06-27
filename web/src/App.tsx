@@ -37,9 +37,11 @@ function ReviewOpsLogo() {
   return (
     <svg width="20" height="20" viewBox="0 0 32 32" aria-hidden>
       <rect width="32" height="32" rx="7" fill="#0d1117"/>
-      <path d="M16 4.5A11.5 11.5 0 1 1 4.5 16" stroke="#388bfd" strokeWidth="3" fill="none" strokeLinecap="round"/>
-      <path d="M2.5 13.5L4.5 17.5L6.5 13.5" stroke="#388bfd" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-      <path d="M10.5 16L14 19.5L21.5 12" stroke="#3fb950" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+      <g stroke="#388bfd" strokeWidth="2.6" fill="none" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12.5 9.5L7 16L12.5 22.5"/>
+        <path d="M19.5 9.5L25 16L19.5 22.5"/>
+        <path d="M13.6 16.4L15.4 18.2L18.7 13.6"/>
+      </g>
     </svg>
   );
 }
@@ -439,7 +441,7 @@ function App() {
               />
             )}
 
-            {activeTab === "history" && <HistoryView findings={deduped} />}
+            {activeTab === "history" && <HistoryView findings={filtered} />}
 
             {activeTab === "insights" && <InsightsView findings={deduped} />}
           </div>
