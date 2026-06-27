@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ntea.dev/reviewops/review-state.schema.json",
+  "title": "ReviewState",
+  "description": "人間がレビュー指摘に対して下した処分(disposition)と、AIへの修正指示(instruction)を記録する可変層。リポジトリ直下の .ai-review/review-state.json に保存され、ダッシュボードが書き込み、AIが読み取って対応対象と修正方針を判別する。キーは指摘のfingerprint。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "entries"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "1.0",
+      "description": "review-stateフォーマットのバージョン。"
+    },
+    "entries": {
+      "type": "object",
+      "description": "リポジトリ名をキーとした辞書。各リポジトリ内で fingerprint をキーとした指摘ごとの状態を持つ。",
+      "additionalProperties": {
+        "type": "object",
+        "description": "fingerprint をキーとした、指摘ごとの人間管理状態の辞書。",
+        "additionalProperties": { "$ref": "#/$defs/entry" }
+      }
+    }
+  },
+  "$defs": {
+    "disposition": {
+      "type": "string",
+      "enum": ["triage", "ai-fix", "manual", "wontfix", "done"],
+      "description": "処分。triage=未分類(初期値) / ai-fix=AIに修正させる(AIの作業キュー) / manual=人間が対応(AIは触らない) / wontfix=対象外(今後通知しない) / done=完了(再レビューで解消を確認)。"
+    },
+    "entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["disposition"],
+      "properties": {
+        "disposition": { "$ref": "#/$defs/disposition" },
+        "instruction": {
+          "type": "string",
+          "description": "AIへの修正指示(任意)。how-to-fixの具体内容。AIはdispositionがai-fixの指摘について、このinstructionに従って修正する。"
+        },
+        "note": { "type": "string", "description": "処分理由などの補足(任意)。" },
+        "thread": {
+          "type": "array",
+          "description": "Investigation Q&A thread for deep-diving into this finding.",
+          "items": { "$ref": "#/$defs/threadMessage" }
+        },
+        "decidedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "状態を更新した日時(ISO 8601)。"
+        },
+        "decidedBy": {
+          "type": "string",
+          "description": "更新の主体。例: user, ai"
+        }
+      }
+    },
+    "threadMessage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["role", "text", "at"],
+      "properties": {
+        "role": {
+          "type": "string",
+          "enum": ["user", "assistant"],
+          "description": "Message author: user (human question) or assistant (AI answer)."
+        },
+        "text": { "type": "string", "description": "Message body." },
+        "at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the message was written (ISO 8601)."
+        }
+      }
+    }
+  }
+}

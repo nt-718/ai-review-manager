@@ -1,0 +1,23 @@
+{
+  "name": "reviewops",
+  "version": "0.1.0",
+  "description": "Normalized AI code review format and an operations dashboard to triage and act on findings.",
+  "type": "module",
+  "bin": {
+    "reviewops": "scripts/cli.mjs"
+  },
+  "scripts": {
+    "serve": "node scripts/cli.mjs serve",
+    "open": "node scripts/cli.mjs serve --open",
+    "status": "node scripts/cli.mjs status",
+    "validate": "node scripts/cli.mjs validate",
+    "collect": "node scripts/cli.mjs collect",
+    "build": "npm --prefix web run build"
+  },
+  "files": [
+    "scripts",
+    "schema",
+    "web/dist"
+  ],
+  "license": "MIT"
+}

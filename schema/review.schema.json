@@ -1,0 +1,129 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ntea.dev/reviewops/review.schema.json",
+  "title": "AIReview",
+  "description": "AIによるコードレビュー結果1回分を表す正規化スキーマ。各AIエディタ(Claude Code / Cursor 等)はこのスキーマに準拠したJSONを .ai-review/<id>.json に出力する。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "id", "createdAt", "reviewer", "target", "findings"],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "1.0",
+      "description": "スキーマのバージョン。将来のフォーマット変更時のマイグレーション基準。"
+    },
+    "id": {
+      "type": "string",
+      "description": "レビューの一意ID。例: 2026-06-27_abc1234"
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "レビュー生成日時(ISO 8601)。"
+    },
+    "reviewer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tool"],
+      "properties": {
+        "tool": {
+          "type": "string",
+          "description": "レビューを生成したツール識別子。例: claude-code, cursor"
+        },
+        "model": {
+          "type": "string",
+          "description": "使用したモデル名。例: claude-opus-4.8"
+        }
+      }
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repo"],
+      "properties": {
+        "repo": { "type": "string", "description": "対象リポジトリ名。" },
+        "branch": { "type": "string", "description": "対象ブランチ名。" },
+        "commit": { "type": "string", "description": "対象コミットハッシュ。" },
+        "pr": { "type": "integer", "description": "関連するPR番号。" }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "score": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "総合スコア(0-100)。"
+        },
+        "text": { "type": "string", "description": "レビュー全体の総評。" }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "description": "個別の指摘事項一覧。",
+      "items": { "$ref": "#/$defs/finding" }
+    }
+  },
+  "$defs": {
+    "severity": {
+      "type": "string",
+      "enum": ["critical", "high", "medium", "low", "info"],
+      "description": "重要度。"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "security",
+        "bug",
+        "performance",
+        "maintainability",
+        "test",
+        "docs",
+        "other"
+      ],
+      "description": "レビュー観点。UIのレーン/フィルタと対応。"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["open", "acknowledged", "resolved", "dismissed"],
+      "description": "対応状態。カンバンの列に対応。"
+    },
+    "confidence": {
+      "type": "string",
+      "enum": ["high", "medium", "low"],
+      "description": "Reviewer confidence (high / medium / low). Distinct from severity (priority)."
+    },
+    "finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "file", "severity", "category", "message"],
+      "properties": {
+        "id": { "type": "string", "description": "指摘の一意ID(レビュー内)。" },
+        "fingerprint": {
+          "type": "string",
+          "description": "レビュー実行をまたいで同一指摘を識別する安定ID。省略時はツール側がfile/category/messageから算出する。人間の処分(decisions.json)はこのfingerprintに紐づく。"
+        },
+        "file": { "type": "string", "description": "対象ファイルパス。" },
+        "line": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "start": { "type": "integer", "minimum": 1 },
+            "end": { "type": "integer", "minimum": 1 }
+          },
+          "required": ["start"],
+          "description": "対象行範囲。"
+        },
+        "severity": { "$ref": "#/$defs/severity" },
+        "category": { "$ref": "#/$defs/category" },
+        "message": { "type": "string", "description": "指摘内容。" },
+        "suggestion": { "type": "string", "description": "修正提案。" },
+        "status": { "$ref": "#/$defs/status", "default": "open" },
+        "confidence": { "$ref": "#/$defs/confidence" },
+        "codeSnippet": { "type": "string", "description": "該当箇所のコード抜粋(任意)。" }
+      }
+    }
+  }
+}

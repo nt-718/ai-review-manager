@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Dark background -->
+  <rect width="32" height="32" rx="7" fill="#0d1117"/>
+  <!-- 270° arc clockwise: top → left (the review ops cycle) -->
+  <path d="M16 4.5A11.5 11.5 0 1 1 4.5 16"
+        stroke="#388bfd" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <!-- Arrowhead at end of arc pointing down -->
+  <path d="M2.5 13.5L4.5 17.5L6.5 13.5"
+        stroke="#388bfd" stroke-width="2.5" fill="none"
+        stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Checkmark in center (green = done/resolved) -->
+  <path d="M10.5 16L14 19.5L21.5 12"
+        stroke="#3fb950" stroke-width="2.5" fill="none"
+        stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
