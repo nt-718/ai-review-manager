@@ -27,6 +27,10 @@ const DISPOSITION_COLOR: Record<string, string> = {
   done: "bg-success/15 text-success-fg ring-1 ring-inset ring-success/40",
 };
 
+const RIGHT_COL_MIN = 240;
+const RIGHT_COL_MAX = 800;
+const RIGHT_COL_DEFAULT = 460;
+
 export function DetailPanel({
   finding,
   readOnly,
@@ -39,7 +43,30 @@ export function DetailPanel({
   const [instruction, setInstruction] = useState("");
   const [question, setQuestion] = useState("");
   const [posting, setPosting] = useState(false);
+  const [rightWidth, setRightWidth] = useState(RIGHT_COL_DEFAULT);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStartX = useRef(0);
+  const dragStartWidth = useRef(0);
   const threadEndRef = useRef<HTMLDivElement>(null);
+
+  function handleDividerMouseDown(e: React.MouseEvent) {
+    e.preventDefault();
+    dragStartX.current = e.clientX;
+    dragStartWidth.current = rightWidth;
+    setIsDragging(true);
+
+    const onMove = (ev: MouseEvent) => {
+      const delta = dragStartX.current - ev.clientX;
+      setRightWidth(Math.max(RIGHT_COL_MIN, Math.min(RIGHT_COL_MAX, dragStartWidth.current + delta)));
+    };
+    const onUp = () => {
+      setIsDragging(false);
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+    };
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+  }
 
   useEffect(() => {
     setNote(finding?.note ?? "");
@@ -85,28 +112,27 @@ export function DetailPanel({
 
   return (
     <>
-      {/* Backdrop */}
+      {/* Backdrop + click-outside closes modal */}
       <div
-        className={`fixed inset-0 z-40 bg-black/50 transition-opacity ${
-          open ? "opacity-100" : "pointer-events-none opacity-0"
+        className={`fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 transition-opacity duration-200 ${
+          open ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
         }`}
         onClick={onClose}
-        aria-hidden
-      />
-
-      {/* Slide-in panel */}
-      <aside
-        className={`fixed right-0 top-0 z-50 flex h-full w-full max-w-[560px] flex-col border-l border-line bg-canvas shadow-2xl transition-transform duration-200 ${
-          open ? "translate-x-0" : "translate-x-full"
-        }`}
-        role="dialog"
-        aria-modal="true"
+        aria-hidden={!open}
       >
-        {finding && (
-          <>
-            {/* Header — GitHub file header style */}
-            <div className="border-b border-line bg-surface">
-              <div className="flex items-start justify-between gap-3 px-4 py-3">
+        <div
+          className={`flex w-full max-w-[92vw] flex-col rounded-lg border border-line bg-canvas shadow-2xl transition-all duration-200 ${
+            open ? "opacity-100 scale-100" : "opacity-0 scale-95"
+          }`}
+          style={{ maxHeight: "92vh", maxWidth: "1400px" }}
+          role="dialog"
+          aria-modal="true"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {finding && (
+            <>
+              {/* Header */}
+              <div className="flex shrink-0 items-start justify-between gap-3 border-b border-line bg-surface px-5 py-3.5 rounded-t-lg">
                 <div className="flex min-w-0 flex-col gap-2">
                   <div className="flex flex-wrap items-center gap-1.5">
                     <SeverityBadge severity={finding.severity} />
@@ -138,254 +164,275 @@ export function DetailPanel({
                   </svg>
                 </button>
               </div>
-            </div>
 
-            <div className="flex flex-1 flex-col gap-0 overflow-y-auto">
-              {/* Message */}
-              <div className="border-b border-line px-4 py-4">
-                <p className="text-sm leading-relaxed text-ink">
-                  {finding.message}
-                </p>
-              </div>
-
-              {/* Code snippet — GitHub diff style */}
-              {finding.codeSnippet && (
-                <div className="border-b border-line">
-                  <div className="flex items-center gap-2 border-b border-line bg-surface px-4 py-2">
-                    <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden className="text-ink-subtle">
-                      <path d="M4 1.75C4 .784 4.784 0 5.75 0h5.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v8.586A1.75 1.75 0 0 1 14.25 15h-9a1.75 1.75 0 0 1-1.75-1.75Zm1.75-.25a.25.25 0 0 0-.25.25v11.5c0 .138.112.25.25.25h9a.25.25 0 0 0 .25-.25V6h-2.75A1.75 1.75 0 0 1 10 4.25V1.5Zm6.75.062V4.25c0 .138.112.25.25.25h2.688Z" />
-                    </svg>
-                    <span className="font-mono text-xs text-ink-subtle">
-                      {basename(finding.file)}
-                      {formatLine(finding.line?.start, finding.line?.end)}
-                    </span>
-                  </div>
-                  <pre className="overflow-x-auto bg-canvas px-4 py-3 font-mono text-xs leading-relaxed text-ink-muted">
-                    <code>{finding.codeSnippet}</code>
-                  </pre>
-                </div>
+              {/* Drag-cursor overlay — keeps cursor consistent during drag */}
+              {isDragging && (
+                <div className="fixed inset-0 z-[60] cursor-col-resize select-none" aria-hidden />
               )}
 
-              {/* Suggestion */}
-              {finding.suggestion && (
-                <div className="border-b border-line bg-accent-hover/5 px-4 py-3">
-                  <div className="mb-1.5 flex items-center gap-1.5 text-accent-fg">
-                    <BulbIcon size="md" />
-                    <span className="text-xs font-semibold">Suggested fix</span>
+              {/* Body — 2 columns */}
+              <div className="flex min-h-0 flex-1 overflow-hidden">
+
+                {/* Left column: context (message, code, suggestion, history) */}
+                <div className="flex flex-1 flex-col gap-0 overflow-y-auto">
+
+                  {/* Message */}
+                  <div className="border-b border-line px-5 py-4">
+                    <p className="text-sm leading-relaxed text-ink">{finding.message}</p>
                   </div>
-                  <p className="text-sm leading-relaxed text-ink-muted">
-                    {finding.suggestion}
-                  </p>
-                </div>
-              )}
 
-              {/* Investigation thread — GitHub PR comment style */}
-              <div className="border-b border-line px-4 py-4">
-                <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-ink">
-                  <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden className="text-ink-subtle">
-                    <path d="M1 2.75C1 1.784 1.784 1 2.75 1h10.5c.966 0 1.75.784 1.75 1.75v7.5A1.75 1.75 0 0 1 13.25 12H9.06l-2.573 2.573A1.458 1.458 0 0 1 4 13.543V12H2.75A1.75 1.75 0 0 1 1 10.25Zm1.75-.25a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h2a.75.75 0 0 1 .75.75v2.19l2.72-2.72a.749.749 0 0 1 .53-.22h4.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25Z" />
-                  </svg>
-                  Investigation
-                </h3>
-
-                {finding.thread.length > 0 ? (
-                  <div className="flex flex-col gap-3">
-                    {finding.thread.map((message, index) => (
-                      <div
-                        key={`${message.at}-${index}`}
-                        className={`rounded-md border text-sm ${
-                          message.role === "user"
-                            ? "border-line bg-surface-2"
-                            : "border-accent-hover/20 bg-accent-hover/5"
-                        }`}
-                      >
-                        {/* Comment header */}
-                        <div
-                          className={`flex items-center gap-2 border-b px-3 py-1.5 text-xs ${
-                              message.role === "user"
-                              ? "border-line bg-surface-3 text-ink-subtle"
-                              : "border-accent-hover/20 bg-accent-hover/5 text-accent-fg"
-                          }`}
-                        >
-                          <span className="font-semibold">
-                            {message.role === "user" ? "You" : "AI"}
-                          </span>
-                          <span className="text-ink-faint">
-                            commented{" "}
-                            {new Date(message.at).toLocaleString("en-US", {
-                              month: "short",
-                              day: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </span>
-                        </div>
-                        <p className="whitespace-pre-wrap px-3 py-2.5 text-ink-muted">
-                          {message.text}
-                        </p>
-                      </div>
-                    ))}
-                    <div ref={threadEndRef} />
-                  </div>
-                ) : (
-                  <p className="text-xs text-ink-faint">
-                    Ask a question to dig deeper into this finding.
-                  </p>
-                )}
-
-                {!readOnly && (
-                  <div className="mt-3 flex flex-col gap-2">
-                    <textarea
-                      value={question}
-                      disabled={posting}
-                      onChange={(e) => setQuestion(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-                          e.preventDefault();
-                          void handleAsk();
-                        }
-                      }}
-                      placeholder="Leave a comment…"
-                      rows={2}
-                      className="w-full resize-y rounded-md border border-line bg-surface-2 px-3 py-2 text-sm leading-relaxed text-ink placeholder:text-ink-faint focus:border-accent-hover focus:outline-none focus:ring-1 focus:ring-accent-hover/50 disabled:opacity-50"
-                    />
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-xs text-ink-faint">
-                        Run{" "}
-                        <code className="rounded bg-surface-2 px-1 py-0.5 font-mono text-ink-subtle">
-                          ai-investigate-finding
-                        </code>{" "}
-                        for an AI answer.
-                      </p>
-                      <button
-                        type="button"
-                        disabled={!question.trim() || posting}
-                        onClick={() => void handleAsk()}
-                        className="shrink-0 rounded-md bg-success px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-success-fg disabled:cursor-not-allowed disabled:opacity-40"
-                      >
-                        {posting ? "Saving…" : "Comment"}
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* History */}
-              {finding.history.length > 0 && (
-                <div className="border-b border-line px-4 py-4">
-                  <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-ink">
-                    <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden className="text-ink-subtle">
-                      <path d="M1.643 3.143 1.43 1.35A.75.75 0 0 0 .006 1.43l-.75 5.25A.75.75 0 0 0 0 7.5v.07a.75.75 0 0 0 .75.75h5.25a.75.75 0 0 0 0-1.5H2.11l.311-2.176A8 8 0 1 1 .83 8.75a.75.75 0 1 0-1.492.158A9.5 9.5 0 1 0 1.643 3.143ZM8 5a.75.75 0 0 1 .75.75v2.586l1.22 1.22a.75.75 0 1 1-1.06 1.06l-1.5-1.5A.75.75 0 0 1 7.25 8.5V5.75A.75.75 0 0 1 8 5Z" />
-                    </svg>
-                    History
-                  </h3>
-                  <ol className="flex flex-col gap-1.5">
-                    {finding.history.map((entry: HistoryEntry, i: number) => (
-                      <li key={i} className="flex items-center gap-2 text-xs text-ink-muted">
-                        <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 font-medium ${DISPOSITION_COLOR[entry.from] ?? DISPOSITION_COLOR.triage}`}>
-                          {DISPOSITION_LABEL[entry.from]}
-                        </span>
-                        <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor" aria-hidden className="shrink-0 text-ink-faint">
-                          <path d="M8.22 2.97a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L11.44 8.5H2.75a.75.75 0 0 1 0-1.5h8.69L8.22 4.03a.75.75 0 0 1 0-1.06Z" />
+                  {/* Code snippet */}
+                  {finding.codeSnippet && (
+                    <div className="border-b border-line">
+                      <div className="flex items-center gap-2 border-b border-line bg-surface px-4 py-2">
+                        <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden className="text-ink-subtle">
+                          <path d="M4 1.75C4 .784 4.784 0 5.75 0h5.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v8.586A1.75 1.75 0 0 1 14.25 15h-9a1.75 1.75 0 0 1-1.75-1.75Zm1.75-.25a.25.25 0 0 0-.25.25v11.5c0 .138.112.25.25.25h9a.25.25 0 0 0 .25-.25V6h-2.75A1.75 1.75 0 0 1 10 4.25V1.5Zm6.75.062V4.25c0 .138.112.25.25.25h2.688Z" />
                         </svg>
-                        <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 font-medium ${DISPOSITION_COLOR[entry.to] ?? DISPOSITION_COLOR.triage}`}>
-                          {DISPOSITION_LABEL[entry.to]}
+                        <span className="font-mono text-xs text-ink-subtle">
+                          {basename(finding.file)}
+                          {formatLine(finding.line?.start, finding.line?.end)}
                         </span>
-                        <span className="ml-auto text-ink-faint">
-                          {new Date(entry.at).toLocaleString("en-US", {
-                            month: "short",
-                            day: "numeric",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                          {" · "}
-                          {entry.by}
-                        </span>
-                      </li>
-                    ))}
-                  </ol>
-                </div>
-              )}
+                      </div>
+                      <pre className="overflow-x-auto bg-canvas px-5 py-3 font-mono text-xs leading-relaxed text-ink-muted">
+                        <code>{finding.codeSnippet}</code>
+                      </pre>
+                    </div>
+                  )}
 
-              {/* Fix instruction + Note */}
-              <div className="px-4 py-4">
-                <div className="flex flex-col gap-4">
-                  <div className="flex flex-col gap-2">
-                    <label className="text-xs font-semibold uppercase tracking-wide text-ink-subtle">
-                      Fix instruction
-                    </label>
-                    <textarea
-                      value={instruction}
-                      disabled={readOnly}
-                      onChange={(e) => setInstruction(e.target.value)}
-                      onBlur={handleBlurSave}
-                      placeholder="Tell the AI how to fix this. Findings in the AI Fix column are eligible."
-                      rows={3}
-                      className="w-full resize-y rounded-md border border-line bg-surface-2 px-3 py-2 text-sm leading-relaxed text-ink placeholder:text-ink-faint focus:border-accent-hover focus:outline-none focus:ring-1 focus:ring-accent-hover/50 disabled:opacity-50"
-                    />
-                    {!readOnly && (
-                      <button
-                        type="button"
-                        disabled={!instructionDirty}
-                        onClick={() => onStateChange(finding, { instruction })}
-                        className="self-end rounded-md bg-accent px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-40"
-                      >
-                        Save
-                      </button>
-                    )}
-                  </div>
+                  {/* Suggestion */}
+                  {finding.suggestion && (
+                    <div className="border-b border-line bg-accent-hover/5 px-5 py-4">
+                      <div className="mb-1.5 flex items-center gap-1.5 text-accent-fg">
+                        <BulbIcon size="md" />
+                        <span className="text-xs font-semibold">Suggested fix</span>
+                      </div>
+                      <p className="text-sm leading-relaxed text-ink-muted">{finding.suggestion}</p>
+                    </div>
+                  )}
 
-                  <div className="flex flex-col gap-2">
-                    <label className="text-xs font-semibold uppercase tracking-wide text-ink-subtle">
-                      Note
-                    </label>
-                    <textarea
-                      value={note}
-                      disabled={readOnly}
-                      onChange={(e) => setNote(e.target.value)}
-                      onBlur={handleBlurSave}
-                      placeholder="Rationale or notes (optional)"
-                      rows={2}
-                      className="w-full resize-y rounded-md border border-line bg-surface-2 px-3 py-2 text-sm leading-relaxed text-ink placeholder:text-ink-faint focus:border-accent-hover focus:outline-none focus:ring-1 focus:ring-accent-hover/50 disabled:opacity-50"
-                    />
-                    {!readOnly && (
-                      <button
-                        type="button"
-                        disabled={!noteDirty}
-                        onClick={() => onStateChange(finding, { note })}
-                        className="self-end rounded-md border border-line bg-surface-2 px-3 py-1.5 text-xs font-medium text-ink-muted transition hover:border-line-strong hover:bg-surface-3 disabled:cursor-not-allowed disabled:opacity-40"
-                      >
-                        Save
-                      </button>
-                    )}
-                  </div>
-
-                  {!readOnly && (
-                    <p className="text-xs text-ink-faint">
-                      Drag cards on the board to move between columns
-                    </p>
+                  {/* History */}
+                  {finding.history.length > 0 && (
+                    <div className="px-5 py-4">
+                      <h3 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-ink-subtle">
+                        <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden>
+                          <path d="M1.643 3.143 1.43 1.35A.75.75 0 0 0 .006 1.43l-.75 5.25A.75.75 0 0 0 0 7.5v.07a.75.75 0 0 0 .75.75h5.25a.75.75 0 0 0 0-1.5H2.11l.311-2.176A8 8 0 1 1 .83 8.75a.75.75 0 1 0-1.492.158A9.5 9.5 0 1 0 1.643 3.143ZM8 5a.75.75 0 0 1 .75.75v2.586l1.22 1.22a.75.75 0 1 1-1.06 1.06l-1.5-1.5A.75.75 0 0 1 7.25 8.5V5.75A.75.75 0 0 1 8 5Z" />
+                        </svg>
+                        History
+                      </h3>
+                      <ol className="flex flex-col gap-1.5">
+                        {finding.history.map((entry: HistoryEntry, i: number) => (
+                          <li key={i} className="flex items-center gap-2 text-xs text-ink-muted">
+                            <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 font-medium ${DISPOSITION_COLOR[entry.from] ?? DISPOSITION_COLOR.triage}`}>
+                              {DISPOSITION_LABEL[entry.from]}
+                            </span>
+                            <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor" aria-hidden className="shrink-0 text-ink-faint">
+                              <path d="M8.22 2.97a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L11.44 8.5H2.75a.75.75 0 0 1 0-1.5h8.69L8.22 4.03a.75.75 0 0 1 0-1.06Z" />
+                            </svg>
+                            <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 font-medium ${DISPOSITION_COLOR[entry.to] ?? DISPOSITION_COLOR.triage}`}>
+                              {DISPOSITION_LABEL[entry.to]}
+                            </span>
+                            <span className="ml-auto text-ink-faint">
+                              {new Date(entry.at).toLocaleString("en-US", {
+                                month: "short",
+                                day: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                              {" · "}
+                              {entry.by}
+                            </span>
+                          </li>
+                        ))}
+                      </ol>
+                    </div>
                   )}
                 </div>
-              </div>
-            </div>
 
-            {/* Footer */}
-            <div className="border-t border-line bg-surface px-4 py-2.5">
-              <p className="font-mono text-xs text-ink-faint">
-                {finding.repo}
-                {" · "}
-                {new Date(finding.createdAt).toLocaleString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                  year: "numeric",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </p>
-            </div>
-          </>
-        )}
-      </aside>
+                {/* Resizable divider */}
+                <div
+                  className={`group relative flex w-1.5 shrink-0 cursor-col-resize flex-col items-center justify-center border-x border-line bg-surface-2 transition-colors hover:bg-accent-fg/20 ${isDragging ? "bg-accent-fg/30" : ""}`}
+                  onMouseDown={handleDividerMouseDown}
+                  aria-hidden
+                >
+                  <div className="flex flex-col gap-1">
+                    <div className="h-1 w-1 rounded-full bg-ink-faint group-hover:bg-accent-fg/60 transition-colors" />
+                    <div className="h-1 w-1 rounded-full bg-ink-faint group-hover:bg-accent-fg/60 transition-colors" />
+                    <div className="h-1 w-1 rounded-full bg-ink-faint group-hover:bg-accent-fg/60 transition-colors" />
+                  </div>
+                </div>
+
+                {/* Right column: actions (investigation, fix instruction, note) */}
+                <div className="flex shrink-0 flex-col overflow-y-auto" style={{ width: rightWidth }}>
+
+                  {/* Investigation thread */}
+                  <div className="flex flex-1 flex-col gap-0 border-b border-line px-4 py-4">
+                    <h3 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-ink-subtle">
+                      <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden>
+                        <path d="M1 2.75C1 1.784 1.784 1 2.75 1h10.5c.966 0 1.75.784 1.75 1.75v7.5A1.75 1.75 0 0 1 13.25 12H9.06l-2.573 2.573A1.458 1.458 0 0 1 4 13.543V12H2.75A1.75 1.75 0 0 1 1 10.25Zm1.75-.25a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h2a.75.75 0 0 1 .75.75v2.19l2.72-2.72a.749.749 0 0 1 .53-.22h4.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25Z" />
+                      </svg>
+                      Investigation
+                    </h3>
+
+                    {finding.thread.length > 0 ? (
+                      <div className="flex flex-col gap-3">
+                        {finding.thread.map((message, index) => (
+                          <div
+                            key={`${message.at}-${index}`}
+                            className={`rounded-md border text-sm ${
+                              message.role === "user"
+                                ? "border-line bg-surface-2"
+                                : "border-accent-hover/20 bg-accent-hover/5"
+                            }`}
+                          >
+                            <div
+                              className={`flex items-center gap-2 border-b px-3 py-1.5 text-xs ${
+                                message.role === "user"
+                                  ? "border-line bg-surface-3 text-ink-subtle"
+                                  : "border-accent-hover/20 bg-accent-hover/5 text-accent-fg"
+                              }`}
+                            >
+                              <span className="font-semibold">
+                                {message.role === "user" ? "You" : "AI"}
+                              </span>
+                              <span className="text-ink-faint">
+                                commented{" "}
+                                {new Date(message.at).toLocaleString("en-US", {
+                                  month: "short",
+                                  day: "numeric",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}
+                              </span>
+                            </div>
+                            <p className="whitespace-pre-wrap px-3 py-2.5 text-ink-muted">
+                              {message.text}
+                            </p>
+                          </div>
+                        ))}
+                        <div ref={threadEndRef} />
+                      </div>
+                    ) : (
+                      <p className="text-xs text-ink-faint">
+                        Ask a question to dig deeper into this finding.
+                      </p>
+                    )}
+
+                    {!readOnly && (
+                      <div className="mt-3 flex flex-col gap-2">
+                        <textarea
+                          value={question}
+                          disabled={posting}
+                          onChange={(e) => setQuestion(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                              e.preventDefault();
+                              void handleAsk();
+                            }
+                          }}
+                          placeholder="Leave a comment…"
+                          rows={2}
+                          className="w-full resize-y rounded-md border border-line bg-surface-2 px-3 py-2 text-sm leading-relaxed text-ink placeholder:text-ink-faint focus:border-accent-hover focus:outline-none focus:ring-1 focus:ring-accent-hover/50 disabled:opacity-50"
+                        />
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-xs text-ink-faint">
+                            Run{" "}
+                            <code className="rounded bg-surface-2 px-1 py-0.5 font-mono text-ink-subtle">
+                              ai-investigate-finding
+                            </code>{" "}
+                            for an AI answer.
+                          </p>
+                          <button
+                            type="button"
+                            disabled={!question.trim() || posting}
+                            onClick={() => void handleAsk()}
+                            className="shrink-0 rounded-md bg-success px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-success-fg disabled:cursor-not-allowed disabled:opacity-40"
+                          >
+                            {posting ? "Saving…" : "Comment"}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Fix instruction + Note */}
+                  <div className="flex flex-col gap-4 px-4 py-4">
+                    <div className="flex flex-col gap-2">
+                      <label className="text-xs font-semibold uppercase tracking-wide text-ink-subtle">
+                        Fix instruction
+                      </label>
+                      <textarea
+                        value={instruction}
+                        disabled={readOnly}
+                        onChange={(e) => setInstruction(e.target.value)}
+                        onBlur={handleBlurSave}
+                        placeholder="Tell the AI how to fix this. Findings in the AI Fix column are eligible."
+                        rows={3}
+                        className="w-full resize-y rounded-md border border-line bg-surface-2 px-3 py-2 text-sm leading-relaxed text-ink placeholder:text-ink-faint focus:border-accent-hover focus:outline-none focus:ring-1 focus:ring-accent-hover/50 disabled:opacity-50"
+                      />
+                      {!readOnly && (
+                        <button
+                          type="button"
+                          disabled={!instructionDirty}
+                          onClick={() => onStateChange(finding, { instruction })}
+                          className="self-end rounded-md bg-accent px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          Save
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                      <label className="text-xs font-semibold uppercase tracking-wide text-ink-subtle">
+                        Note
+                      </label>
+                      <textarea
+                        value={note}
+                        disabled={readOnly}
+                        onChange={(e) => setNote(e.target.value)}
+                        onBlur={handleBlurSave}
+                        placeholder="Rationale or notes (optional)"
+                        rows={2}
+                        className="w-full resize-y rounded-md border border-line bg-surface-2 px-3 py-2 text-sm leading-relaxed text-ink placeholder:text-ink-faint focus:border-accent-hover focus:outline-none focus:ring-1 focus:ring-accent-hover/50 disabled:opacity-50"
+                      />
+                      {!readOnly && (
+                        <button
+                          type="button"
+                          disabled={!noteDirty}
+                          onClick={() => onStateChange(finding, { note })}
+                          className="self-end rounded-md border border-line bg-surface-2 px-3 py-1.5 text-xs font-medium text-ink-muted transition hover:border-line-strong hover:bg-surface-3 disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          Save
+                        </button>
+                      )}
+                    </div>
+
+                    {!readOnly && (
+                      <p className="text-xs text-ink-faint">
+                        Drag cards on the board to move between columns
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="shrink-0 rounded-b-lg border-t border-line bg-surface px-5 py-2.5">
+                <p className="font-mono text-xs text-ink-faint">
+                  {finding.repo}
+                  {" · "}
+                  {new Date(finding.createdAt).toLocaleString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </p>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
     </>
   );
 }
