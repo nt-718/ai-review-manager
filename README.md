@@ -58,12 +58,18 @@ JSON. The manager joins the two, so state persists across re-reviews.
 ## Quick start
 
 ```bash
-# 1. Install dashboard dependencies and build (first time / on updates)
-npm run build
+# 1. Clone and link globally (one-time setup)
+git clone <this-repo> reviewops
+cd reviewops
+npm run build   # build the dashboard
+npm link        # make `reviewops` available as a global command
 
-# 2. Start the control board (http://localhost:4517)
-npm run serve
-#   or: node scripts/cli.mjs serve
+# 2. In any project you want to review:
+cd ~/projects/my-app
+reviewops init         # copy skills + schema, register in global board
+
+# 3. Start the control board (http://localhost:4517)
+reviewops serve --open
 ```
 
 For development with hot reload (the API is bundled into the Vite dev server):
@@ -72,7 +78,7 @@ For development with hot reload (the API is bundled into the Vite dev server):
 cd web && npm run dev
 ```
 
-ReviewOps reads each repository's `.ai-review/` live from `review-sources.json`, so
+ReviewOps reads each repository's `.ai-review/` live from the global config, so
 no pre-aggregation is needed (use `npm run collect` only for static CI hosting).
 
 ## CLI reference
@@ -90,9 +96,10 @@ reviewops collect [<path>...]           Copy reviews for static hosting
 Run inside any repository you want to review. It:
 
 1. Creates `.ai-review/` in the current directory.
-2. Copies `.claude/skills/`, `.cursor/skills/`, and `schema/` into the project so the
-   AI editor can use them without a separate install.
-3. Registers the project in the global config
+2. Copies `.claude/skills/`, `.cursor/skills/`, and `schema/` into the project.
+3. Installs all four skills into **`~/.claude/skills/`** so they are available in
+   every project without per-project copying.
+4. Registers the project in the global config
    (`~/.config/reviewops/review-sources.json`) so the dashboard picks it up from
    anywhere.
 

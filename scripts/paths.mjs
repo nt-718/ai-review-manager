@@ -31,3 +31,7 @@ export function getGlobalConfigDir() {
 export function getGlobalSourcesConfig() {
   return join(getGlobalConfigDir(), SOURCES_FILE);
 }
+
+export function getGlobalClaudeSkillsDir() {
+  return join(homedir(), ".claude", "skills");
+}

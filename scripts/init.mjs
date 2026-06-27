@@ -3,6 +3,7 @@ import { existsSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import {
   PACKAGE_ROOT,
+  getGlobalClaudeSkillsDir,
   getGlobalSourcesConfig,
   getProjectRoot,
 } from "./paths.mjs";
@@ -22,6 +23,15 @@ async function copyTarget(relPath, projectRoot) {
     force: false,
     errorOnExist: false,
   });
+}
+
+async function installGlobalClaudeSkills() {
+  const src = join(PACKAGE_ROOT, ".claude", "skills");
+  const dest = getGlobalClaudeSkillsDir();
+  if (!existsSync(src)) return false;
+  await mkdir(dest, { recursive: true });
+  await cp(src, dest, { recursive: true, force: true });
+  return true;
 }
 
 async function registerInGlobalConfig(projectRoot) {
@@ -63,6 +73,9 @@ export async function runInit() {
     await copyTarget(relPath, projectRoot);
     out(`  ✓  ${relPath}\n`);
   }
+
+  await installGlobalClaudeSkills();
+  out(`  ✓  ~/.claude/skills  (global — available in all projects)\n`);
 
   const { configPath, sources, added } = await registerInGlobalConfig(
     projectRoot,

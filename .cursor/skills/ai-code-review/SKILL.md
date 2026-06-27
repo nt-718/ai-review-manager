@@ -21,8 +21,8 @@ Review the target code and write the result as a single JSON file conforming to 
 
 ```
 - [ ] 1. Identify the review target (diff, PR, or whole repo) and gather repo/branch/commit
-- [ ] 2. Read the relevant code
-- [ ] 3. Detect issues and classify each by category and severity
+- [ ] 2. Read all relevant source files thoroughly — don't skip tests, config, or schema files
+- [ ] 3. Detect issues across all categories; prefer depth over breadth for each finding
 - [ ] 4. Write findings + summary into the JSON structure below
 - [ ] 5. Validate against schema/review.schema.json (all required fields, valid enums)
 - [ ] 6. Save to .ai-review/<id>.json
@@ -37,7 +37,7 @@ Review the target code and write the result as a single JSON file conforming to 
   "createdAt": "2026-06-27T00:00:00Z",
   "reviewer": { "tool": "cursor", "model": "claude-opus-4.8" },
   "target": { "repo": "my-repo", "branch": "main", "commit": "abc1234", "pr": 42 },
-  "summary": { "score": 80, "text": "総評を1〜2文で。" },
+  "summary": { "score": 80, "text": "全体の評価と主なパターンをここに書く。" },
   "findings": [
     {
       "id": "f1",
@@ -46,11 +46,11 @@ Review the target code and write the result as a single JSON file conforming to 
       "line": { "start": 20, "end": 24 },
       "severity": "critical",
       "category": "security",
-      "message": "指摘内容を簡潔に。",
-      "suggestion": "具体的な修正方針。",
+      "message": "指摘内容の詳細説明（2〜3文）。",
+      "suggestion": "具体的な修正方法とコード例。",
       "confidence": "high",
       "status": "open",
-      "codeSnippet": "該当箇所のコード抜粋(任意)"
+      "codeSnippet": "該当箇所のコード抜粋"
     }
   ]
 }
@@ -61,6 +61,45 @@ Review the target code and write the result as a single JSON file conforming to 
 - Top level: `schemaVersion` (always `"1.0"`), `id`, `createdAt` (ISO 8601), `reviewer.tool`, `target.repo`, `findings`.
 - Each finding: `id`, `file`, `severity`, `category`, `message`, **`confidence`**.
 - `suggestion`, `line`, `codeSnippet`, `summary`, `status`, `fingerprint` are recommended but optional. Default `status` to `"open"`.
+
+## Writing quality standards
+
+### `summary.text`
+3〜4文で書く。スコアの根拠、目立つ問題のパターン、良かった点、優先して直すべき領域を含める。
+
+**悪い例**: "全体的に問題があります。"
+**良い例**: "認証周りに critical が2件あり、本番運用前に必ず対処が必要です。エラーハンドリングが一貫しておらず、Promise を握りつぶしているケースが複数のモジュールで見られます。テストカバレッジは主要なハッピーパスを押さえているものの、境界値とエラーパスが手薄です。型定義は丁寧で可読性は高いため、スコアは 62 としました。"
+
+### `message`
+**2〜3文で書く。** 1文目で問題を特定し、2文目でなぜそれが問題なのか（リスク・影響・根拠）を説明し、必要なら3文目で問題の範囲や関連箇所を補足する。
+
+**悪い例**: "エラーが握りつぶされています。"
+**良い例**: "fetchUser() の catch ブロックが空で、ネットワークエラーや認証エラーを呼び出し元に伝達していません。これにより、ログインに失敗してもUIがエラーを表示せず、ユーザーが何も起きていないと誤認するリスクがあります。同じパターンが fetchProfile() と updateSettings() にも存在します。"
+
+### `suggestion`
+**具体的なコード例か、番号付きの修正手順を含める。** 「〜してください」で終わる抽象的な指示は不十分。
+
+**悪い例**: "適切なエラーハンドリングを追加してください。"
+**良い例**:
+```
+catch ブロックでエラーを再スローするか、呼び出し元が処理できる形で返す:
+
+  async function fetchUser(id: string): Promise<User> {
+    try {
+      const res = await api.get(`/users/${id}`);
+      return res.data;
+    } catch (e) {
+      // ログに記録してから再スロー
+      logger.error("fetchUser failed", { id, error: e });
+      throw new ApiError("ユーザー取得に失敗しました", { cause: e });
+    }
+  }
+
+fetchProfile() と updateSettings() にも同じ修正を適用する。
+```
+
+### `codeSnippet`
+問題の該当箇所が明確になる場合は必ず含める（`line` と合わせて使う）。修正前のコードを貼ること。
 
 ### fingerprint（レビュー実行をまたぐ安定ID）
 
@@ -113,12 +152,14 @@ Every finding **must** include `confidence`. Display as `high` / `medium` / `low
 ## Rules
 
 1. すべての finding に正しい `category`、`severity`、**`confidence`** を付ける。判断基準は上表に従い、一貫性を保つ。
-2. `message` は1文で要点を、`suggestion` は具体的な修正方針を書く。
-3. `file` はリポジトリルートからの相対パス。`line` は可能な限り埋める。
-4. enum 以外の値を使わない。不明なら `other` / 妥当な severity を選ぶ。
-5. 出力後、`schema/review.schema.json` の必須項目・enum・型を満たしているか必ず確認する。
-6. 推測の指摘は避け、根拠のある指摘のみ記載する。重複指摘はまとめる。
-7. 人間の処分と修正指示は `.ai-review/review-state.json`（可変層）で管理される。レビューJSON（不変層）はAIの所見のみを書き、`review-state.json` をこのスキルで書き換えてはならない。
+2. `message` は2〜3文で「何が問題か・なぜ問題か・影響範囲」を説明する（上記の品質基準を参照）。
+3. `suggestion` には具体的なコード例または番号付き手順を含める（上記の品質基準を参照）。
+4. `codeSnippet` は問題箇所が特定できる場合は必ず含める。
+5. `file` はリポジトリルートからの相対パス。`line` は可能な限り埋める。
+6. enum 以外の値を使わない。不明なら `other` / 妥当な severity を選ぶ。
+7. 出力後、`schema/review.schema.json` の必須項目・enum・型を満たしているか必ず確認する。
+8. 推測の指摘は `confidence: "low"` で記載し、根拠を明示する。重複指摘はまとめる。
+9. 人間の処分と修正指示は `.ai-review/review-state.json`（可変層）で管理される。レビューJSON（不変層）はAIの所見のみを書き、`review-state.json` をこのスキルで書き換えてはならない。
 
 ## Validation
 
