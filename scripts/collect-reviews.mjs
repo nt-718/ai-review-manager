@@ -1,11 +1,9 @@
 import { readdir, readFile, writeFile, mkdir, rm } from "node:fs/promises";
 import { existsSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { resolveSources } from "./api.mjs";
-
-const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const OUTPUT_DIR = join(REPO_ROOT, "web", "public", "reviews");
+import { STATIC_REVIEWS_DIR as OUTPUT_DIR } from "./paths.mjs";
 
 function sanitize(name) {
   return name.replace(/[^a-zA-Z0-9._-]/g, "-");

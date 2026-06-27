@@ -2,13 +2,9 @@ import { createServer } from "node:http";
 import { exec } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
-import { extname, join, normalize, resolve } from "node:path";
-import { dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { extname, join, normalize } from "node:path";
 import { handleApiRequest } from "./api.mjs";
-
-const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const DIST_DIR = join(REPO_ROOT, "web", "dist");
+import { DIST_DIR } from "./paths.mjs";
 
 const MIME_TYPES = {
   ".html": "text/html; charset=utf-8",
@@ -24,7 +20,7 @@ async function serveStatic(req, res) {
   if (!existsSync(DIST_DIR)) {
     res.writeHead(503, { "Content-Type": "text/plain; charset=utf-8" });
     res.end(
-      "Dashboard is not built. Run `cd web && npm run build` first.",
+      "Dashboard is not built. Run `npm run build` (or reinstall to trigger the prepare step).",
     );
     return;
   }

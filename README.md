@@ -38,20 +38,18 @@ It is built around three independent layers:
   .ai-review/review-state.json ← mutable: what the human DECIDED / INSTRUCTED (review-state.schema.json)
         │  the AI reads this
         ▼
-  AI works the "AI fix" lane per the instruction → re-reviews → confirms resolution → "Done"
+  AI works the "In Progress" lane per the instruction → re-reviews → confirms resolution → "Done"
 ```
 
 ### Disposition lanes
 
-Board columns represent **instructions to the AI**, not progress:
-
-| Lane | Meaning |
-| --- | --- |
-| `Triage` | New finding, awaiting a human decision (default). |
-| `AI fix` | **The AI's work queue** — the AI only acts on this lane. |
-| `Manual` | A human will handle it; the AI must not touch it. |
-| `Won't fix` | Dismissed with a reason; do not report again. |
-| `Done` | Confirmed resolved by re-review. |
+| UI label | `disposition` value | Meaning |
+| --- | --- | --- |
+| **New** | `triage` | Unsorted finding, awaiting a human decision (default). |
+| **In Progress** | `ai-fix` | **The AI's work queue** — the AI only acts on this lane. |
+| **In Review** | `manual` | Awaiting human review; the AI must not touch it. |
+| **Won't Fix** | `wontfix` | Dismissed with a reason; do not report again. |
+| **Done** | `done` | Verified resolved by re-review. |
 
 Human decisions and fix instructions live in `.ai-review/review-state.json` (the
 mutable layer), keyed by each finding's `fingerprint` — not in the immutable review

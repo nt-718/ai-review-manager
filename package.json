@@ -7,17 +7,22 @@
     "reviewops": "scripts/cli.mjs"
   },
   "scripts": {
+    "init": "node scripts/cli.mjs init",
     "serve": "node scripts/cli.mjs serve",
     "open": "node scripts/cli.mjs serve --open",
     "status": "node scripts/cli.mjs status",
     "validate": "node scripts/cli.mjs validate",
     "collect": "node scripts/cli.mjs collect",
-    "build": "npm --prefix web run build"
+    "build": "npm --prefix web run build",
+    "prepare": "npm --prefix web install && npm --prefix web run build"
   },
   "files": [
     "scripts",
     "schema",
-    "web/dist"
+    "web/dist",
+    ".claude/skills",
+    ".cursor/skills",
+    "review-sources.example.json"
   ],
   "license": "MIT"
 }

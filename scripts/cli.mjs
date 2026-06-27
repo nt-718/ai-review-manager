@@ -3,11 +3,13 @@ import { startServer } from "./server.mjs";
 import { runValidate } from "./validate.mjs";
 import { runStatus } from "./status.mjs";
 import { runCollect } from "./collect-reviews.mjs";
+import { runInit } from "./init.mjs";
 import { resolveSources } from "./api.mjs";
 
 const HELP = `reviewops — ReviewOps
 
 Usage:
+  reviewops init                            Install skills + schema, register on the global board
   reviewops serve [--port <n>] [--open]   Start dashboard + API server
   reviewops status                          Show finding summary in terminal
   reviewops validate                        Validate review JSON files
@@ -53,6 +55,10 @@ const { command, port, open, extra } = parseArgs(process.argv.slice(2));
 
 async function main() {
   switch (command) {
+    case "init":
+      await runInit();
+      break;
+
     case "serve":
       startServer({ port, open });
       break;

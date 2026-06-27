@@ -2,21 +2,32 @@ import { readdir, readFile, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import {
+  getGlobalSourcesConfig,
+  getProjectRoot,
+  getSourcesConfig,
+} from "./paths.mjs";
 
-const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const SOURCES_CONFIG = join(REPO_ROOT, "review-sources.json");
 const STATE_FILE = "review-state.json";
 const VALID_DISPOSITIONS = ["triage", "ai-fix", "manual", "wontfix", "done"];
 const VALID_THREAD_ROLES = ["user", "assistant"];
 const DEFAULT_DISPOSITION = "triage";
 
 export async function resolveSources() {
-  if (existsSync(SOURCES_CONFIG)) {
-    const config = JSON.parse(await readFile(SOURCES_CONFIG, "utf8"));
-    return (config.sources ?? []).map((p) => resolve(REPO_ROOT, p));
-  }
-  return [REPO_ROOT];
+  const projectConfig = getSourcesConfig();
+  const globalConfig = getGlobalSourcesConfig();
+
+  const configPath = existsSync(projectConfig)
+    ? projectConfig
+    : existsSync(globalConfig)
+      ? globalConfig
+      : null;
+
+  if (!configPath) return [getProjectRoot()];
+
+  const baseDir = dirname(configPath);
+  const config = JSON.parse(await readFile(configPath, "utf8"));
+  return (config.sources ?? []).map((p) => resolve(baseDir, p));
 }
 
 function computeFingerprint(repo, finding) {
