@@ -52,7 +52,23 @@
         "decidedBy": {
           "type": "string",
           "description": "更新の主体。例: user, ai"
+        },
+        "history": {
+          "type": "array",
+          "description": "disposition の遷移履歴。新しい順ではなく時系列順(古い→新しい)で格納する。",
+          "items": { "$ref": "#/$defs/historyEntry" }
         }
+      }
+    },
+    "historyEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["from", "to", "at", "by"],
+      "properties": {
+        "from": { "$ref": "#/$defs/disposition", "description": "遷移前の disposition。" },
+        "to": { "$ref": "#/$defs/disposition", "description": "遷移後の disposition。" },
+        "at": { "type": "string", "format": "date-time", "description": "遷移日時(ISO 8601)。" },
+        "by": { "type": "string", "description": "遷移の主体。例: user, ai" }
       }
     },
     "threadMessage": {

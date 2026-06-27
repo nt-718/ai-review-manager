@@ -23,6 +23,13 @@ export interface ThreadMessage {
   at: string;
 }
 
+export interface HistoryEntry {
+  from: Disposition;
+  to: Disposition;
+  at: string;
+  by: string;
+}
+
 export interface LineRange {
   start: number;
   end?: number;

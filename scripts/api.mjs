@@ -104,13 +104,24 @@ function buildStateEntry(existing, { disposition, instruction, note, thread }) {
   const trimmedNote = (note ?? "").trim();
   const trimmedInstruction = (instruction ?? "").trim();
   const threadMessages = thread ?? existing?.thread ?? [];
-  const nextDisposition = disposition ?? existing?.disposition ?? DEFAULT_DISPOSITION;
+  const prevDisposition = existing?.disposition ?? DEFAULT_DISPOSITION;
+  const nextDisposition = disposition ?? prevDisposition;
+
+  const newHistoryEntry =
+    nextDisposition !== prevDisposition
+      ? { from: prevDisposition, to: nextDisposition, at: new Date().toISOString(), by: "user" }
+      : null;
+  const history = [
+    ...(existing?.history ?? []),
+    ...(newHistoryEntry ? [newHistoryEntry] : []),
+  ];
 
   const isEmpty =
     nextDisposition === DEFAULT_DISPOSITION &&
     trimmedNote === "" &&
     trimmedInstruction === "" &&
-    threadMessages.length === 0;
+    threadMessages.length === 0 &&
+    history.length === 0;
 
   if (isEmpty) return null;
 
@@ -119,6 +130,7 @@ function buildStateEntry(existing, { disposition, instruction, note, thread }) {
     ...(trimmedInstruction ? { instruction: trimmedInstruction } : {}),
     ...(trimmedNote ? { note: trimmedNote } : {}),
     ...(threadMessages.length > 0 ? { thread: threadMessages } : {}),
+    ...(history.length > 0 ? { history } : {}),
     decidedAt: new Date().toISOString(),
     decidedBy: "user",
   };
@@ -154,6 +166,7 @@ export async function collectFindings() {
           instruction: entry?.instruction ?? "",
           note: entry?.note ?? "",
           thread: entry?.thread ?? [],
+          history: entry?.history ?? [],
         });
       }
     }
@@ -201,6 +214,7 @@ export async function applyState({
     instruction: (instruction ?? "").trim(),
     note: (note ?? "").trim(),
     thread: existing?.thread ?? [],
+    history: nextEntry?.history ?? [],
   };
 }
 

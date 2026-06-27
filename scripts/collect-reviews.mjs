@@ -1,4 +1,4 @@
-import { readdir, readFile, writeFile, mkdir, rm } from "node:fs/promises";
+import { readdir, readFile, writeFile, mkdir, rm, rename } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -44,14 +44,15 @@ export async function runCollect(extraPaths = []) {
     collected.push(...reviews);
   }
 
-  await rm(OUTPUT_DIR, { recursive: true, force: true });
-  await mkdir(OUTPUT_DIR, { recursive: true });
+  const TMP_DIR = OUTPUT_DIR + ".tmp";
+  await rm(TMP_DIR, { recursive: true, force: true });
+  await mkdir(TMP_DIR, { recursive: true });
 
   const fileNames = [];
   for (const review of collected) {
     const fileName = `${sanitize(review.target.repo)}__${sanitize(review.id)}.json`;
     await writeFile(
-      join(OUTPUT_DIR, fileName),
+      join(TMP_DIR, fileName),
       JSON.stringify(review, null, 2),
       "utf8",
     );
@@ -59,10 +60,13 @@ export async function runCollect(extraPaths = []) {
   }
 
   await writeFile(
-    join(OUTPUT_DIR, "index.json"),
+    join(TMP_DIR, "index.json"),
     JSON.stringify({ reviews: fileNames }, null, 2),
     "utf8",
   );
+
+  await rm(OUTPUT_DIR, { recursive: true, force: true });
+  await rename(TMP_DIR, OUTPUT_DIR);
 
   console.log(`Collected ${fileNames.length} review(s) into ${OUTPUT_DIR}`);
 }

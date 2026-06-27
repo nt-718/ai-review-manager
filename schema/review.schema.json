@@ -98,7 +98,7 @@
     "finding": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "file", "severity", "category", "message"],
+      "required": ["id", "file", "severity", "category", "message", "confidence"],
       "properties": {
         "id": { "type": "string", "description": "指摘の一意ID(レビュー内)。" },
         "fingerprint": {

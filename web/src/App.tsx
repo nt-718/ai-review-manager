@@ -239,7 +239,14 @@ function App() {
         prev && findingKey(prev) === key ? { ...prev, ...next } : prev,
       );
       try {
-        await updateState(finding, next);
+        const result = await updateState(finding, next);
+        const history = result.history;
+        setFindings((prev) =>
+          prev.map((f) => (findingKey(f) === key ? { ...f, history } : f)),
+        );
+        setSelected((prev) =>
+          prev && findingKey(prev) === key ? { ...prev, history } : prev,
+        );
         setNotice(null);
       } catch (e) {
         setNotice(

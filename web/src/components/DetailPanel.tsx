@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { DISPOSITION_LABEL } from "../types/review";
+import type { HistoryEntry } from "../types/review";
 import type { FindingState, FindingWithContext } from "../lib/reviews";
 import { basename, formatLine } from "../lib/style";
 import { BulbIcon } from "./BulbIcon";
@@ -268,6 +269,43 @@ export function DetailPanel({
                   </div>
                 )}
               </div>
+
+              {/* History */}
+              {finding.history.length > 0 && (
+                <div className="border-b border-line px-4 py-4">
+                  <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-ink">
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden className="text-ink-subtle">
+                      <path d="M1.643 3.143 1.43 1.35A.75.75 0 0 0 .006 1.43l-.75 5.25A.75.75 0 0 0 0 7.5v.07a.75.75 0 0 0 .75.75h5.25a.75.75 0 0 0 0-1.5H2.11l.311-2.176A8 8 0 1 1 .83 8.75a.75.75 0 1 0-1.492.158A9.5 9.5 0 1 0 1.643 3.143ZM8 5a.75.75 0 0 1 .75.75v2.586l1.22 1.22a.75.75 0 1 1-1.06 1.06l-1.5-1.5A.75.75 0 0 1 7.25 8.5V5.75A.75.75 0 0 1 8 5Z" />
+                    </svg>
+                    History
+                  </h3>
+                  <ol className="flex flex-col gap-1.5">
+                    {finding.history.map((entry: HistoryEntry, i: number) => (
+                      <li key={i} className="flex items-center gap-2 text-xs text-ink-muted">
+                        <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 font-medium ${DISPOSITION_COLOR[entry.from] ?? DISPOSITION_COLOR.triage}`}>
+                          {DISPOSITION_LABEL[entry.from]}
+                        </span>
+                        <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor" aria-hidden className="shrink-0 text-ink-faint">
+                          <path d="M8.22 2.97a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L11.44 8.5H2.75a.75.75 0 0 1 0-1.5h8.69L8.22 4.03a.75.75 0 0 1 0-1.06Z" />
+                        </svg>
+                        <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 font-medium ${DISPOSITION_COLOR[entry.to] ?? DISPOSITION_COLOR.triage}`}>
+                          {DISPOSITION_LABEL[entry.to]}
+                        </span>
+                        <span className="ml-auto text-ink-faint">
+                          {new Date(entry.at).toLocaleString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                          {" · "}
+                          {entry.by}
+                        </span>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              )}
 
               {/* Fix instruction + Note */}
               <div className="px-4 py-4">

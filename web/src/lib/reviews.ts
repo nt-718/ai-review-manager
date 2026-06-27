@@ -1,4 +1,4 @@
-import type { Disposition, Finding, Review, ThreadMessage } from "../types/review";
+import type { Disposition, Finding, HistoryEntry, Review, ThreadMessage } from "../types/review";
 
 export interface FindingWithContext extends Finding {
   fingerprint: string;
@@ -12,6 +12,7 @@ export interface FindingWithContext extends Finding {
   instruction: string;
   note: string;
   thread: ThreadMessage[];
+  history: HistoryEntry[];
 }
 
 export interface FindingState {
@@ -19,6 +20,7 @@ export interface FindingState {
   instruction: string;
   note: string;
   thread?: ThreadMessage[];
+  history?: HistoryEntry[];
 }
 
 export interface FindingsResult {
@@ -33,8 +35,26 @@ interface ReviewIndex {
   reviews: string[];
 }
 
+function isReviewIndex(data: unknown): data is ReviewIndex {
+  return (
+    typeof data === "object" &&
+    data !== null &&
+    Array.isArray((data as ReviewIndex).reviews)
+  );
+}
+
+function isReview(data: unknown): data is Review {
+  return (
+    typeof data === "object" &&
+    data !== null &&
+    typeof (data as Review).id === "string" &&
+    Array.isArray((data as Review).findings) &&
+    typeof (data as { target?: { repo?: unknown } }).target?.repo === "string"
+  );
+}
+
 // api.mjs computeFingerprint と同一アルゴリズム: sha1(repo + NUL + file + NUL + category + NUL + normalizedMessage)
-async function fallbackFingerprint(repo: string, finding: Finding): Promise<string> {
+export async function fallbackFingerprint(repo: string, finding: Finding): Promise<string> {
   const normalizedMessage = (finding.message ?? "")
     .trim()
     .toLowerCase()
@@ -66,6 +86,7 @@ async function flattenStatic(reviews: Review[]): Promise<FindingWithContext[]> {
         instruction: "",
         note: "",
         thread: [],
+        history: [],
       })),
     ),
   );
@@ -73,18 +94,22 @@ async function flattenStatic(reviews: Review[]): Promise<FindingWithContext[]> {
 
 // 静的モードは読み取り専用。review-state.json は参照しないため
 // 全カードの disposition は "triage" になり、過去の処分は反映されない。
-async function loadStaticReviews(): Promise<{ findings: FindingWithContext[]; notice?: string }> {
+export async function loadStaticReviews(): Promise<{ findings: FindingWithContext[]; notice?: string }> {
   const indexRes = await fetch(`${DATA_BASE}/index.json`);
   if (!indexRes.ok) {
     throw new Error(`Failed to load review index (${indexRes.status})`);
   }
-  const index = (await indexRes.json()) as ReviewIndex;
+  const rawIndex = await indexRes.json();
+  if (!isReviewIndex(rawIndex)) throw new Error("Review index has unexpected shape");
+  const index = rawIndex;
 
   const results = await Promise.allSettled(
     index.reviews.map(async (file) => {
       const res = await fetch(`${DATA_BASE}/${file}`);
       if (!res.ok) throw new Error(`Failed to load review: ${file} (${res.status})`);
-      return (await res.json()) as Review;
+      const raw = await res.json();
+      if (!isReview(raw)) throw new Error(`Review ${file} has unexpected shape`);
+      return raw;
     }),
   );
 
@@ -110,23 +135,27 @@ export function findingKey(finding: FindingWithContext): string {
 }
 
 export async function loadFindings(): Promise<FindingsResult> {
+  let serverError: string | undefined;
   try {
     const res = await fetch("/api/findings");
     if (res.ok) {
-      const data = (await res.json()) as { findings: FindingWithContext[] };
+      const data = (await res.json()) as { findings: Array<FindingWithContext & { history?: HistoryEntry[] }> };
+      data.findings.forEach((f) => { f.history ??= []; });
       return { findings: data.findings, readOnly: false };
     }
+    console.warn(`/api/findings responded with ${res.status} — falling back to static files`);
+    serverError = `API エラー (${res.status}) のため読み取り専用モードで表示しています。`;
   } catch {
     // API offline — fall back to static files
   }
   const { findings, notice } = await loadStaticReviews();
-  return { findings, readOnly: true, notice };
+  return { findings, readOnly: true, notice: serverError ?? notice };
 }
 
 export async function updateState(
   finding: FindingWithContext,
   state: FindingState,
-): Promise<void> {
+): Promise<{ history: HistoryEntry[] }> {
   const res = await fetch("/api/state", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -143,6 +172,8 @@ export async function updateState(
     const detail = (await res.json().catch(() => ({}))) as { error?: string };
     throw new Error(detail.error ?? `Failed to update state (${res.status})`);
   }
+  const data = (await res.json()) as { history?: HistoryEntry[] };
+  return { history: data.history ?? [] };
 }
 
 export async function appendThreadMessage(

@@ -58,7 +58,7 @@ export function startServer({ port = 4517, open = false } = {}) {
   });
 
   server.listen(port, "127.0.0.1", () => {
-    const url = `http://localhost:${port}`;
+    const url = `http://127.0.0.1:${port}`;
     console.log(`ReviewOps → ${url}`);
     if (open) {
       const opener =

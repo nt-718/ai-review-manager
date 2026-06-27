@@ -39,7 +39,9 @@ function validateReview(review) {
       errors.push(`${p}.category: invalid value "${f.category}"`);
     if (f.status != null && !VALID_STATUS.has(f.status))
       errors.push(`${p}.status: invalid value "${f.status}"`);
-    if (f.confidence != null && !VALID_CONFIDENCE.has(f.confidence))
+    if (!f.confidence)
+      errors.push(`${p}.confidence: required`);
+    else if (!VALID_CONFIDENCE.has(f.confidence))
       errors.push(`${p}.confidence: invalid value "${f.confidence}"`);
   }
 
